@@ -391,7 +391,7 @@ if (!session || !token) { window.location.href = "../login/index.html"; }
 
 const API = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
   ? "http://localhost:8000/api/v1"
-  : "https://nexus-backend.vercel.app/api/v1"; // ← replace with your actual Vercel backend URL
+  : "https://nexus-gules-ten.vercel.app/api/v1"; // ← replace with your actual Vercel backend URL
 const branchId = session.branch_id;
 const tenantId = session.tenant_id;
 const role     = session.role;
