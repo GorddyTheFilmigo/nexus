@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:,">
+<title>Nexus POS — Create Account</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#080b10;--surface:#10141c;--surface2:#181e2a;--border:#1f2840;--border2:#2c3a5c;
+    --text:#e4e8f4;--muted:#6b7799;--hint:#3a4568;
+    --accent:#4f8ef7;--accent2:#3569c4;
+    --green:#3ecf8e;--green-bg:rgba(62,207,142,.1);
+    --red:#f75f4f;--red-bg:rgba(247,95,79,.1);
+    --purple:#a78bfa;
+  }
+  html,body{min-height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+  body::before{content:'';position:fixed;inset:0;
+    background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+    background-size:48px 48px;opacity:.3;pointer-events:none;z-index:0}
+  .glow{position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:900px;height:700px;
+    background:radial-gradient(ellipse,rgba(79,142,247,.1) 0%,transparent 70%);pointer-events:none;z-index:0}
+  .page{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 24px 60px;position:relative;z-index:1}
+  .topnav{width:100%;max-width:600px;display:flex;align-items:center;justify-content:space-between;margin-bottom:40px}
+  .topnav-logo{display:flex;align-items:center;gap:10px}
+  .topnav-icon{width:36px;height:36px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#fff}
+  .topnav-name{font-size:16px;font-weight:600}
+  .topnav-right{font-size:13px;color:var(--muted)}
+  .topnav-right a{color:var(--accent);text-decoration:none;font-weight:500}
+  /* STEPS */
+  .steps{display:flex;align-items:center;margin-bottom:32px}
+  .step{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;color:var(--hint)}
+  .step.active{color:var(--accent)}
+  .step.done{color:var(--green)}
+  .step-num{width:28px;height:28px;border-radius:50%;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+  .step.active .step-num{background:rgba(79,142,247,.15)}
+  .step.done .step-num{background:var(--green-bg)}
+  .step-connector{width:40px;height:1.5px;background:var(--border);margin:0 6px}
+  .step-connector.done{background:var(--green)}
+  /* CARD */
+  .card{width:100%;max-width:560px;background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:36px 32px;position:relative;overflow:hidden}
+  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(79,142,247,.5),transparent)}
+  .card-title{font-size:20px;font-weight:600;margin-bottom:6px}
+  .card-sub{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6}
+  /* FIELDS */
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .input-wrap{position:relative}
+  .input-wrap input,.input-wrap select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 14px 11px 38px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border .15s}
+  .input-wrap select{padding-left:14px;cursor:pointer}
+  .input-wrap input::placeholder{color:var(--hint)}
+  .input-wrap input:focus,.input-wrap select:focus{border-color:var(--accent)}
+  .input-wrap select option{background:var(--surface2)}
+  .input-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--hint);font-size:14px;pointer-events:none}
+  /* PASSWORD STRENGTH */
+  .pwd-strength{margin-top:6px;display:flex;gap:4px;align-items:center}
+  .pwd-bar{flex:1;height:3px;border-radius:2px;background:var(--border);transition:background .3s}
+  .pwd-label{font-size:11px;color:var(--hint);min-width:48px;text-align:right}
+  /* PLANS */
+  .plan-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:8px}
+  .plan-card{border:1.5px solid var(--border);border-radius:12px;padding:14px 12px;cursor:pointer;transition:all .15s;text-align:center;background:var(--surface2)}
+  .plan-card:hover{border-color:var(--border2)}
+  .plan-card.selected{border-color:var(--accent);background:rgba(79,142,247,.08)}
+  .plan-name{font-size:13px;font-weight:600;margin-bottom:4px}
+  .plan-price{font-size:11px;color:var(--muted);margin-bottom:8px}
+  .plan-feat{font-size:10px;color:var(--hint);line-height:1.7}
+  .plan-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500;margin-bottom:6px}
+  .badge-popular{background:rgba(79,142,247,.15);color:var(--accent)}
+  .badge-enterprise{background:rgba(167,139,250,.1);color:var(--purple)}
+  /* BRANCHES */
+  .branch-list{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+  .branch-row{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
+  .branch-row input{flex:1;background:transparent;border:none;outline:none;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif}
+  .branch-row input::placeholder{color:var(--hint)}
+  .branch-remove{width:24px;height:24px;border-radius:6px;border:none;background:var(--red-bg);color:var(--red);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1}
+  .add-branch-btn{width:100%;padding:9px;border-radius:8px;border:1px dashed var(--border2);background:transparent;color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+  .add-branch-btn:hover{border-color:var(--accent);color:var(--accent)}
+  /* ERROR */
+  .error-box{background:var(--red-bg);border:1px solid rgba(247,95,79,.35);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:16px;display:none}
+  .error-box.show{display:block}
+  /* BUTTONS */
+  .btn-row{display:flex;gap:10px;margin-top:24px}
+  .btn-back{padding:11px 20px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;transition:all .15s}
+  .btn-back:hover{border-color:var(--accent);color:var(--accent)}
+  .btn-next{flex:1;padding:13px;background:var(--accent);border:1px solid var(--accent);color:#fff;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn-next:hover:not(:disabled){background:var(--accent2)}
+  .btn-next:disabled{opacity:.5;cursor:not-allowed}
+  .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:none}
+  .spinner.show{display:block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  /* PANELS */
+  .panel{display:none}
+  .panel.active{display:block}
+  /* SUCCESS */
+  .success-wrap{text-align:center;padding:16px 0}
+  .success-icon{width:64px;height:64px;border-radius:50%;background:var(--green-bg);border:1.5px solid rgba(62,207,142,.3);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 18px;animation:pop .4s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+  .summary-box{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:left;margin:20px 0}
+  .summary-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px}
+  .summary-row:last-child{margin-bottom:0}
+  .summary-key{color:var(--muted)}
+  .summary-val{font-weight:500;font-family:'DM Mono',monospace;font-size:11px}
+  .redirect-bar{width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+  .redirect-fill{height:100%;background:var(--green);border-radius:2px;animation:fill 3s linear forwards}
+  @keyframes fill{to{width:100%}}
+  .page-footer{margin-top:28px;font-size:11px;color:var(--hint);text-align:center}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="page">
+
+  <div class="topnav">
+    <div class="topnav-logo">
+      <div class="topnav-icon">NX</div>
+      <div class="topnav-name">Nexus POS</div>
+    </div>
+    <div class="topnav-right">Have an account? <a href="../login/index.html">Sign in</a></div>
+  </div>
+
+  <!-- STEP INDICATORS -->
+  <div class="steps" id="steps-bar">
+    <div class="step active" id="si1"><div class="step-num" id="sn1">1</div><span>Company</span></div>
+    <div class="step-connector" id="sc1"></div>
+    <div class="step" id="si2"><div class="step-num" id="sn2">2</div><span>Branches</span></div>
+    <div class="step-connector" id="sc2"></div>
+    <div class="step" id="si3"><div class="step-num" id="sn3">3</div><span>Admin account</span></div>
+    <div class="step-connector" id="sc3"></div>
+    <div class="step" id="si4"><div class="step-num" id="sn4">4</div><span>Plan</span></div>
+  </div>
+
+  <div class="card">
+    <div class="error-box" id="err"></div>
+
+    <!-- PANEL 1: COMPANY -->
+    <div class="panel active" id="p1">
+      <div class="card-title">Set up your company</div>
+      <div class="card-sub">This becomes the top-level tenant. All branches and staff belong here.</div>
+      <div class="field">
+        <label>Company / Business Name *</label>
+        <div class="input-wrap"><span class="input-icon">🏢</span><input type="text" id="c-name" placeholder="e.g. Nairobi Retail Ltd"></div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Country</label>
+          <div class="input-wrap">
+            <select id="c-country">
+              <option value="KE">🇰🇪 Kenya</option><option value="UG">🇺🇬 Uganda</option>
+              <option value="TZ">🇹🇿 Tanzania</option><option value="NG">🇳🇬 Nigeria</option>
+              <option value="GH">🇬🇭 Ghana</option><option value="ZA">🇿🇦 South Africa</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Currency</label>
+          <div class="input-wrap">
+            <select id="c-currency">
+              <option value="KES">KES — Kenyan Shilling</option>
+              <option value="UGX">UGX — Ugandan Shilling</option>
+              <option value="TZS">TZS — Tanzanian Shilling</option>
+              <option value="NGN">NGN — Nigerian Naira</option>
+              <option value="GHS">GHS — Ghanaian Cedi</option>
+              <option value="ZAR">ZAR — South African Rand</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>VAT / Tax Rate (%)</label>
+          <div class="input-wrap"><span class="input-icon">%</span><input type="number" id="c-tax" value="16" min="0" max="30"></div>
+        </div>
+        <div class="field">
+          <label>Tax PIN</label>
+          <div class="input-wrap"><span class="input-icon">#</span><input type="text" id="c-pin" placeholder="P000000000A"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Phone Number</label>
+        <div class="input-wrap"><span class="input-icon">📞</span><input type="tel" id="c-phone" placeholder="+254 700 000 000"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-next" onclick="goNext(1)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- PANEL 2: BRANCHES -->
+    <div class="panel" id="p2">
+      <div class="card-title">Add your branches</div>
+      <div class="card-sub">Add at least one branch. You can add more later from the admin panel.</div>
+      <div class="branch-list" id="branch-list"></div>
+      <button class="add-branch-btn" onclick="addBranch()">+ Add another branch</button>
+      <div class="btn-row">
+        <button class="btn-back" onclick="goBack(2)">← Back</button>
+        <button class="btn-next" onclick="goNext(2)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- PANEL 3: ADMIN -->
+    <div class="panel" id="p3">
+      <div class="card-title">Create your admin account</div>
+      <div class="card-sub">Super Admin — full access to all branches, users, and reports.</div>
+      <div class="field-row">
+        <div class="field"><label>First Name *</label><div class="input-wrap"><span class="input-icon">👤</span><input type="text" id="a-fname" placeholder="John"></div></div>
+        <div class="field"><label>Last Name *</label><div class="input-wrap"><span class="input-icon">👤</span><input type="text" id="a-lname" placeholder="Kamau"></div></div>
+      </div>
+      <div class="field"><label>Email Address *</label><div class="input-wrap"><span class="input-icon">✉</span><input type="email" id="a-email" placeholder="admin@company.co.ke"></div></div>
+      <div class="field">
+        <label>Password *</label>
+        <div class="input-wrap"><span class="input-icon">🔑</span><input type="password" id="a-pwd" placeholder="Min 8 characters" oninput="checkPwd(this.value)"></div>
+        <div class="pwd-strength">
+          <div class="pwd-bar" id="pb1"></div><div class="pwd-bar" id="pb2"></div>
+          <div class="pwd-bar" id="pb3"></div><div class="pwd-bar" id="pb4"></div>
+          <span class="pwd-label" id="pwd-lbl">—</span>
+        </div>
+      </div>
+      <div class="field"><label>Confirm Password *</label><div class="input-wrap"><span class="input-icon">🔑</span><input type="password" id="a-pwd2" placeholder="Repeat password"></div></div>
+      <div class="btn-row">
+        <button class="btn-back" onclick="goBack(3)">← Back</button>
+        <button class="btn-next" onclick="goNext(3)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- PANEL 4: PLAN -->
+    <div class="panel" id="p4">
+      <div class="card-title">Choose your plan</div>
+      <div class="card-sub">All plans include a 14-day free trial. No credit card required.</div>
+      <div class="plan-grid">
+        <div class="plan-card" id="pl-starter" onclick="pickPlan('starter')">
+          <div class="plan-name">Starter</div><div class="plan-price">KES 1,500/mo</div>
+          <div class="plan-feat">1 branch<br>3 staff accounts<br>Basic reports</div>
+        </div>
+        <div class="plan-card selected" id="pl-growth" onclick="pickPlan('growth')">
+          <div class="plan-badge badge-popular">Most popular</div>
+          <div class="plan-name">Growth</div><div class="plan-price">KES 4,500/mo</div>
+          <div class="plan-feat">5 branches<br>Unlimited staff<br>Full reports</div>
+        </div>
+        <div class="plan-card" id="pl-enterprise" onclick="pickPlan('enterprise')">
+          <div class="plan-badge badge-enterprise">Enterprise</div>
+          <div class="plan-name">Enterprise</div><div class="plan-price">Custom pricing</div>
+          <div class="plan-feat">Unlimited branches<br>Priority support<br>Custom integrations</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--hint);text-align:center;margin-top:8px">Cancel anytime.</div>
+      <div class="btn-row">
+        <button class="btn-back" onclick="goBack(4)">← Back</button>
+        <button class="btn-next" id="create-btn" onclick="createAccount()">
+          <span id="create-txt">Create Account</span>
+          <div class="spinner" id="create-spin"></div>
+        </button>
+      </div>
+    </div>
+
+    <!-- PANEL SUCCESS -->
+    <div class="panel" id="p-success">
+      <div class="success-wrap">
+        <div class="success-icon">✓</div>
+        <div style="font-size:22px;font-weight:600;margin-bottom:8px">You're all set!</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">Your company account has been created.<br>Sign in with your admin credentials.</div>
+        <div class="summary-box" id="summary"></div>
+        <div class="redirect-bar"><div class="redirect-fill"></div></div>
+        <p style="font-size:12px;color:var(--muted);margin-top:10px">Redirecting to login…</p>
+        <a href="../login/index.html" style="color:var(--accent);font-size:13px;font-weight:500;display:inline-block;margin-top:12px">Go to login now →</a>
+      </div>
+    </div>
+
+  </div><!-- /card -->
+  <div class="page-footer">By creating an account you agree to our Terms of Service.<br>Data stored securely in Firebase (Google Cloud).</div>
+</div>
+
+<script>
+// ══ CONFIG ══════════════════════════════════════════════════════════════════
+const API_BASE  = "http://localhost:8000/api/v1";
+const FB_APIKEY = "AIzaSyAFt2tHlUudFw66RfJW_A-KaqzAH9_WNKQ";
+const FB_PROJ   = "nexus-c27e0";
+
+// ══ STATE ═══════════════════════════════════════════════════════════════════
+let step     = 1;
+let plan     = "growth";
+let formData = {};
+
+// ══ STEP INDICATORS ═════════════════════════════════════════════════════════
+function updateSteps(active) {
+  for (let i = 1; i <= 4; i++) {
+    const si = document.getElementById("si" + i);
+    const sn = document.getElementById("sn" + i);
+    const sc = document.getElementById("sc" + i);
+    si.className = "step" + (i < active ? " done" : i === active ? " active" : "");
+    sn.textContent = i < active ? "✓" : i;
+    if (sc) sc.className = "step-connector" + (i < active ? " done" : "");
+  }
+}
+
+function showPanel(n) {
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  const el = document.getElementById(n === "success" ? "p-success" : "p" + n);
+  if (el) el.classList.add("active");
+}
+
+// ══ NAVIGATION ══════════════════════════════════════════════════════════════
+function goNext(from) {
+  clearErr();
+  if (!validate(from)) return;
+  collect(from);
+  step = from + 1;
+  showPanel(step);
+  updateSteps(step);
+  window.scrollTo(0, 0);
+}
+
+function goBack(from) {
+  step = from - 1;
+  showPanel(step);
+  updateSteps(step);
+}
+
+// ══ VALIDATION ══════════════════════════════════════════════════════════════
+function validate(s) {
+  if (s === 1) {
+    if (!val("c-name")) return err("Please enter your company name");
+  }
+  if (s === 2) {
+    const names = getBranches();
+    if (!names.length) return err("Add at least one branch");
+  }
+  if (s === 3) {
+    if (!val("a-fname"))  return err("Enter your first name");
+    if (!val("a-lname"))  return err("Enter your last name");
+    if (!val("a-email") || !document.getElementById("a-email").value.includes("@"))
+      return err("Enter a valid email address");
+    const pwd = document.getElementById("a-pwd").value;
+    if (pwd.length < 8)   return err("Password must be at least 8 characters");
+    if (pwd !== document.getElementById("a-pwd2").value)
+      return err("Passwords do not match");
+  }
+  return true;
+}
+
+function val(id) { return document.getElementById(id).value.trim(); }
+
+// ══ DATA COLLECTION ══════════════════════════════════════════════════════════
+function collect(s) {
+  if (s === 1) {
+    formData.companyName = val("c-name");
+    formData.country     = document.getElementById("c-country").value;
+    formData.currency    = document.getElementById("c-currency").value;
+    formData.taxRate     = parseFloat(document.getElementById("c-tax").value) / 100;
+    formData.taxPin      = val("c-pin");
+    formData.phone       = val("c-phone");
+  }
+  if (s === 2) { formData.branches = getBranches(); }
+  if (s === 3) {
+    formData.firstName = val("a-fname");
+    formData.lastName  = val("a-lname");
+    formData.email     = val("a-email");
+    formData.password  = document.getElementById("a-pwd").value;
+    formData.name      = val("a-fname") + " " + val("a-lname");
+  }
+}
+
+function getBranches() {
+  return [...document.querySelectorAll(".branch-row input")]
+    .map(i => i.value.trim()).filter(Boolean);
+}
+
+// ══ BRANCHES ════════════════════════════════════════════════════════════════
+function addBranch(value = "") {
+  const list = document.getElementById("branch-list");
+  const row  = document.createElement("div");
+  row.className = "branch-row";
+  row.innerHTML = `<span>🏢</span>
+    <input type="text" placeholder="Branch name, e.g. Westlands" value="${value}">
+    <button class="branch-remove" onclick="this.parentElement.remove()">✕</button>`;
+  list.appendChild(row);
+  row.querySelector("input").focus();
+}
+
+// ══ PLAN ════════════════════════════════════════════════════════════════════
+function pickPlan(p) {
+  plan = p;
+  ["starter","growth","enterprise"].forEach(x =>
+    document.getElementById("pl-" + x).classList.toggle("selected", x === p)
+  );
+}
+
+// ══ PASSWORD STRENGTH ════════════════════════════════════════════════════════
+function checkPwd(pwd) {
+  let s = 0;
+  if (pwd.length >= 8) s++;
+  if (/[A-Z]/.test(pwd)) s++;
+  if (/[0-9]/.test(pwd)) s++;
+  if (/[^A-Za-z0-9]/.test(pwd)) s++;
+  const cols = ["","var(--red)","var(--amber,#f5a623)","var(--accent)","var(--green)"];
+  const labs = ["","Weak","Fair","Good","Strong"];
+  for (let i = 1; i <= 4; i++)
+    document.getElementById("pb"+i).style.background = i <= s ? cols[s] : "var(--border)";
+  const lbl = document.getElementById("pwd-lbl");
+  lbl.textContent = labs[s] || "—";
+  lbl.style.color = cols[s] || "var(--hint)";
+}
+
+// ══ ERROR HELPERS ═══════════════════════════════════════════════════════════
+function err(msg) {
+  const el = document.getElementById("err");
+  el.textContent = msg; el.classList.add("show");
+  el.scrollIntoView({ behavior:"smooth", block:"nearest" });
+  return false;
+}
+function clearErr() { document.getElementById("err").classList.remove("show"); }
+
+// ══ FIREBASE REST API (no SDK — bypasses reCAPTCHA entirely) ════════════════
+async function firebaseSignUp(email, password) {
+  const url = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FB_APIKEY}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, returnSecureToken: true }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw { code: data.error?.message, message: data.error?.message };
+  return data; // { idToken, localId, email, ... }
+}
+
+async function firebaseSignIn(email, password) {
+  const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FB_APIKEY}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, returnSecureToken: true }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw { code: data.error?.message, message: data.error?.message };
+  return data;
+}
+
+async function firebaseUpdateProfile(idToken, displayName) {
+  const url = `https://identitytoolkit.googleapis.com/v1/accounts:update?key=${FB_APIKEY}`;
+  await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken, displayName, returnSecureToken: false }),
+  });
+}
+
+// ══ CREATE ACCOUNT ═══════════════════════════════════════════════════════════
+async function createAccount() {
+  collect(3);
+  formData.plan = plan;
+  clearErr();
+
+  // Check internet
+  if (!navigator.onLine) {
+    err("No internet connection. Please check your network and try again."); return;
+  }
+
+  // Check backend
+  try {
+    const ping = await fetch("http://localhost:8000/health", { signal: AbortSignal.timeout(4000) });
+    if (!ping.ok) throw new Error();
+  } catch {
+    err("Cannot reach backend. Make sure 'py main.py' is running, then try again."); return;
+  }
+
+  // Set loading
+  document.getElementById("create-btn").disabled = true;
+  document.getElementById("create-txt").style.display = "none";
+  document.getElementById("create-spin").classList.add("show");
+
+  try {
+    let authData;
+
+    // Step 1: Create Firebase Auth user via REST (no SDK = no reCAPTCHA)
+    try {
+      authData = await firebaseSignUp(formData.email, formData.password);
+    } catch (e) {
+      if (e.code === "EMAIL_EXISTS") {
+        // Previous partial attempt — sign in instead to get a fresh token
+        authData = await firebaseSignIn(formData.email, formData.password);
+      } else {
+        const msgs = {
+          "WEAK_PASSWORD : Password should be at least 6 characters": "Password too weak. Use at least 8 characters.",
+          "INVALID_EMAIL": "Invalid email address.",
+          "TOO_MANY_ATTEMPTS_TRY_LATER": "Too many attempts. Wait a moment and try again.",
+          "NETWORK_REQUEST_FAILED": "Network error. Check your internet connection.",
+        };
+        throw new Error(msgs[e.code] || e.message || "Sign-up failed");
+      }
+    }
+
+    const uid     = authData.localId;
+    const idToken = authData.idToken;
+
+    // Step 2: Update display name
+    await firebaseUpdateProfile(idToken, formData.name);
+
+    // Step 3: Build tenant ID
+    const tenantId = "tenant-" + formData.companyName
+      .toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").slice(0, 20)
+      + "-" + uid.slice(0, 6);
+
+    // Step 4: Call FastAPI backend
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id_token:     idToken,
+        tenant_id:    tenantId,
+        company_name: formData.companyName,
+        country:      formData.country,
+        currency:     formData.currency,
+        tax_rate:     formData.taxRate,
+        tax_pin:      formData.taxPin,
+        phone:        formData.phone,
+        plan:         formData.plan,
+        admin_name:   formData.name,
+        branches:     formData.branches,
+      }),
+    });
+
+    if (!res.ok && res.status !== 409) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.detail || `Backend error ${res.status}`);
+    }
+
+    // Step 5: Show success
+    document.getElementById("steps-bar").style.display = "none";
+    showPanel("success");
+    document.getElementById("summary").innerHTML = `
+      <div class="summary-row"><span class="summary-key">Company</span><span class="summary-val">${formData.companyName}</span></div>
+      <div class="summary-row"><span class="summary-key">Admin email</span><span class="summary-val">${formData.email}</span></div>
+      <div class="summary-row"><span class="summary-key">Branches</span><span class="summary-val">${formData.branches.join(", ")}</span></div>
+      <div class="summary-row"><span class="summary-key">Plan</span><span class="summary-val">${formData.plan}</span></div>
+    `;
+    setTimeout(() => { window.location.href = "../login/index.html"; }, 3500);
+
+  } catch (e) {
+    err(e.message || "Registration failed. Please try again.");
+  } finally {
+    document.getElementById("create-btn").disabled = false;
+    document.getElementById("create-txt").style.display = "inline";
+    document.getElementById("create-spin").classList.remove("show");
+  }
+}
+
+// ══ INIT ════════════════════════════════════════════════════════════════════
+addBranch("Main Branch");
+</script>
+</body>
+</html>

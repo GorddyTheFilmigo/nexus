@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus POS — Sign In</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#080b10;--surface:#10141c;--surface2:#181e2a;--border:#1f2840;--border2:#2c3a5c;--text:#e4e8f4;--muted:#6b7799;--hint:#3a4568;--accent:#4f8ef7;--accent2:#3569c4;--green:#3ecf8e;--red:#f75f4f;--amber:#f5a623}
+  html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;opacity:.35;pointer-events:none}
+  .glow{position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:600px;background:radial-gradient(ellipse,rgba(79,142,247,.12) 0%,transparent 70%);pointer-events:none}
+  .page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;position:relative;z-index:1}
+
+  /* ── Card ── */
+  .card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:36px 32px;position:relative;overflow:hidden}
+  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(79,142,247,.6),transparent)}
+
+  /* ── Logo ── */
+  .logo{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+  .logo-icon{width:44px;height:44px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:#fff;flex-shrink:0}
+  .logo-name{font-size:20px;font-weight:600;letter-spacing:-.4px}
+  .logo-tag{font-size:11px;color:var(--muted);margin-top:2px}
+  h1{font-size:22px;font-weight:600;letter-spacing:-.4px;margin-bottom:6px}
+  .subtitle{font-size:13px;color:var(--muted);margin-bottom:28px}
+
+  /* ── Branch selector ── */
+  .branch-label{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+  .branch-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;min-height:48px}
+  .branch-pill{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+  .branch-pill:hover{border-color:var(--border2);color:var(--text)}
+  .branch-pill.selected{border-color:var(--accent);background:rgba(79,142,247,.12);color:var(--accent)}
+  .branch-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+  .branch-msg{font-size:12px;padding:12px;grid-column:1/-1;text-align:center;color:var(--hint)}
+
+  /* ── Divider ── */
+  .divider{display:flex;align-items:center;gap:10px;margin:20px 0;color:var(--hint);font-size:11px}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+  /* ══ ALERT BANNER — replaces raw error-msg ══════════════════════════════ */
+  .alert{display:none;align-items:flex-start;gap:11px;padding:13px 14px;border-radius:11px;margin-bottom:16px;border:1px solid transparent}
+  .alert.show{display:flex;animation:alertIn .2s ease}
+  @keyframes alertIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+  /* Types */
+  .alert-error  {background:rgba(247,95,79,.08);  border-color:rgba(247,95,79,.28)}
+  .alert-warning{background:rgba(245,166,35,.08); border-color:rgba(245,166,35,.28)}
+  .alert-success{background:rgba(62,207,142,.08); border-color:rgba(62,207,142,.28)}
+  /* Icon */
+  .alert-icon{font-size:16px;flex-shrink:0;margin-top:1px;line-height:1}
+  .alert-error   .alert-icon{color:var(--red)}
+  .alert-warning .alert-icon{color:var(--amber)}
+  .alert-success .alert-icon{color:var(--green)}
+  /* Body */
+  .alert-body{flex:1;min-width:0}
+  .alert-title{font-size:12px;font-weight:600;margin-bottom:3px;line-height:1.3}
+  .alert-error   .alert-title{color:var(--red)}
+  .alert-warning .alert-title{color:var(--amber)}
+  .alert-success .alert-title{color:var(--green)}
+  .alert-detail{font-size:12px;color:var(--muted);line-height:1.55}
+  /* Dismiss */
+  .alert-close{background:none;border:none;cursor:pointer;color:var(--hint);font-size:14px;flex-shrink:0;padding:0 2px;line-height:1;transition:color .15s;margin-top:1px}
+  .alert-close:hover{color:var(--text)}
+  /* ═══════════════════════════════════════════════════════════════════════ */
+
+  /* ── Input field error highlight ── */
+  .input-wrap input.field-error{border-color:rgba(247,95,79,.5)!important;background:rgba(247,95,79,.04)!important}
+
+  /* ── Form fields ── */
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px}
+  .input-wrap{position:relative}
+  .input-wrap input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 14px 11px 40px;font-size:14px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border .15s,background .15s}
+  .input-wrap input::placeholder{color:var(--hint)}
+  .input-wrap input:focus{border-color:var(--accent)}
+  .input-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--hint);font-size:15px;pointer-events:none}
+  .eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--hint);font-size:14px;padding:4px;transition:color .15s}
+  .eye-btn:hover{color:var(--text)}
+
+  /* ── Submit button ── */
+  .btn-primary{width:100%;padding:13px;background:var(--accent);border:none;border-radius:10px;font-size:14px;font-weight:600;color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn-primary:hover:not(:disabled){background:var(--accent2);transform:translateY(-1px);box-shadow:0 6px 20px rgba(79,142,247,.25)}
+  .btn-primary:active:not(:disabled){transform:translateY(0)}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:none}
+  .spinner.show{display:block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ── Card shake on auth failure ── */
+  @keyframes shake{
+    0%,100%{transform:translateX(0)}
+    15%    {transform:translateX(-8px)}
+    30%    {transform:translateX(8px)}
+    45%    {transform:translateX(-6px)}
+    60%    {transform:translateX(6px)}
+    75%    {transform:translateX(-3px)}
+    90%    {transform:translateX(3px)}
+  }
+  .shake{animation:shake .42s ease}
+
+  /* ── Success card ── */
+  .success-wrap{display:none;flex-direction:column;align-items:center;text-align:center;padding:20px 0}
+  .success-wrap.show{display:flex}
+  .check-circle{width:56px;height:56px;border-radius:50%;background:rgba(62,207,142,.12);border:1px solid rgba(62,207,142,.3);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:14px;animation:pop .35s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+  .success-name{font-size:18px;font-weight:600;margin-bottom:4px}
+  .success-role{font-size:12px;color:var(--muted);margin-bottom:4px}
+  .success-branch{font-size:12px;color:var(--accent)}
+  .redirect-bar{width:100%;height:3px;background:var(--border);border-radius:2px;margin-top:20px;overflow:hidden}
+  .redirect-fill{height:100%;background:var(--green);border-radius:2px;width:0%;animation:fill 2s linear forwards}
+  @keyframes fill{to{width:100%}}
+  .role-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;margin-top:6px}
+  .role-super_admin   {background:rgba(167,139,250,.12);color:#a78bfa}
+  .role-branch_manager{background:rgba(79,142,247,.12); color:#4f8ef7}
+  .role-supervisor    {background:rgba(245,166,35,.12);  color:#f5a623}
+  .role-cashier       {background:rgba(62,207,142,.12);  color:#3ecf8e}
+
+  .footer{margin-top:16px;font-size:11px;color:var(--hint);text-align:center}
+  .register-link{margin-top:14px;text-align:center;font-size:12px;color:var(--muted)}
+  .register-link a{color:var(--accent);text-decoration:none;font-weight:500}
+  .register-link a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="page">
+
+  <!-- ── Login card ─────────────────────────────────────────────────── -->
+  <div class="card" id="login-card">
+    <div class="logo">
+      <div class="logo-icon">NX</div>
+      <div><div class="logo-name">Nexus POS</div><div class="logo-tag">Multi-Branch Platform</div></div>
+    </div>
+    <h1>Welcome back</h1>
+    <p class="subtitle">Select your branch and sign in to start your shift.</p>
+
+    <div class="branch-label">Select Branch</div>
+    <div class="branch-grid" id="branch-grid">
+      <div class="branch-msg">Loading branches…</div>
+    </div>
+
+    <div class="divider">credentials</div>
+
+    <!-- Alert banner -->
+    <div class="alert" id="login-alert" role="alert" aria-live="assertive">
+      <span class="alert-icon" id="alert-icon"></span>
+      <div class="alert-body">
+        <div class="alert-title"  id="alert-title"></div>
+        <div class="alert-detail" id="alert-detail"></div>
+      </div>
+      <button class="alert-close" onclick="hideAlert()" aria-label="Dismiss">✕</button>
+    </div>
+
+    <div class="field">
+      <label>Email Address</label>
+      <div class="input-wrap">
+        <span class="input-icon">✉</span>
+        <input type="email" id="email" placeholder="you@company.co.ke"
+               autocomplete="email" oninput="clearAlert()">
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:20px">
+      <label>Password</label>
+      <div class="input-wrap">
+        <span class="input-icon">🔑</span>
+        <input type="password" id="password" placeholder="••••••••"
+               autocomplete="current-password" oninput="clearAlert()">
+        <button class="eye-btn" onclick="togglePwd()" title="Show/hide password">👁</button>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">
+      <span id="btn-text">Sign In to Shift</span>
+      <div class="spinner" id="spinner"></div>
+    </button>
+    <p class="footer">All sessions are monitored and recorded for security.</p>
+    <div class="register-link">New company? <a href="../register/index.html">Create an account</a></div>
+  </div>
+
+  <!-- ── Success card ────────────────────────────────────────────────── -->
+  <div class="card" id="success-card" style="display:none">
+    <div class="success-wrap show">
+      <div class="check-circle">✓</div>
+      <div class="success-name"   id="s-name">—</div>
+      <div class="success-role"   id="s-role"></div>
+      <div class="success-branch" id="s-branch"></div>
+      <div style="margin-top:8px" id="s-badge"></div>
+      <div class="redirect-bar"><div class="redirect-fill"></div></div>
+      <p style="font-size:12px;color:var(--muted);margin-top:10px">Redirecting to your dashboard…</p>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script type="module">
+import { initializeApp }                       from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collectionGroup, getDocs }
+                                               from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ── Firebase config (unchanged) ────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey:            "AIzaSyAFt2tHlUudFw66RfJW_A-KaqzAH9_WNKQ",
+  authDomain:        "nexus-c27e0.firebaseapp.com",
+  projectId:         "nexus-c27e0",
+  storageBucket:     "nexus-c27e0.firebasestorage.app",
+  messagingSenderId: "165562902172",
+  appId:             "1:165562902172:web:ef98d1b07d8e84d238ef59",
+};
+const API_BASE = "http://localhost:8000/api/v1";
+
+const fbApp  = initializeApp(firebaseConfig);
+const fbAuth = getAuth(fbApp);
+const fsDb   = getFirestore(fbApp);
+
+let selectedBranchId = null, selectedBranchName = null;
+
+// ── ERROR CODE → HUMAN MESSAGE MAP ────────────────────────────────────────
+function friendlyError(err) {
+  const code = (err && err.code) || "";
+  const raw  = (err && err.message) || String(err || "");
+
+  const MAP = {
+    "auth/user-disabled":
+      { title: "Account Disabled",
+        detail: "This account has been deactivated. Please contact your administrator to restore access." },
+    "auth/user-not-found":
+      { title: "Account Not Found",
+        detail: "No account exists with that email address. Check your email or register a new company." },
+    "auth/wrong-password":
+      { title: "Incorrect Password",
+        detail: "The password you entered is incorrect. Please try again or reset your password." },
+    "auth/invalid-credential":
+      { title: "Invalid Credentials",
+        detail: "Your email or password is incorrect. Please check and try again." },
+    "auth/invalid-email":
+      { title: "Invalid Email Address",
+        detail: "Please enter a valid email address (e.g. you@company.co.ke)." },
+    "auth/too-many-requests":
+      { title: "Too Many Failed Attempts",
+        detail: "Access temporarily blocked. Please wait a few minutes before trying again, or reset your password." },
+    "auth/network-request-failed":
+      { title: "Network Error",
+        detail: "Could not reach the server. Check your internet connection and try again." },
+    "auth/requires-recent-login":
+      { title: "Session Expired",
+        detail: "Your session has expired for security reasons. Please sign in again." },
+    "auth/popup-closed-by-user":
+      { title: "Sign-in Cancelled",
+        detail: "The sign-in window was closed before completing. Please try again." },
+    "auth/operation-not-allowed":
+      { title: "Sign-in Not Available",
+        detail: "Email/password sign-in is not enabled for this application. Contact your administrator." },
+  };
+
+  if (MAP[code]) return MAP[code];
+
+  // Backend error string
+  const clean = raw
+    .replace(/^firebase:\s*/i, "")
+    .replace(/\s*\(auth\/[^)]+\)\.?/gi, "")
+    .trim();
+
+  return {
+    title:  "Sign-in Failed",
+    detail: clean || "An unexpected error occurred. Please try again.",
+  };
+}
+
+// ── ALERT HELPERS ──────────────────────────────────────────────────────────
+const ICONS = { error: "⊘", warning: "⚠", success: "✓" };
+
+function showAlert(errOrObj, type = "error") {
+  const { title, detail } = (errOrObj && errOrObj.title)
+    ? errOrObj
+    : friendlyError(errOrObj);
+
+  const el = document.getElementById("login-alert");
+  el.className = `alert alert-${type} show`;
+  document.getElementById("alert-icon").textContent   = ICONS[type] || "⊘";
+  document.getElementById("alert-title").textContent  = title;
+  document.getElementById("alert-detail").textContent = detail;
+  el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function hideAlert() {
+  document.getElementById("login-alert").classList.remove("show");
+}
+
+function clearAlert() {
+  hideAlert();
+  document.getElementById("email").classList.remove("field-error");
+  document.getElementById("password").classList.remove("field-error");
+}
+
+// Expose to onclick attributes
+window.hideAlert  = hideAlert;
+window.clearAlert = clearAlert;
+
+// ── BRANCH LOADER ──────────────────────────────────────────────────────────
+async function loadBranches() {
+  const grid = document.getElementById("branch-grid");
+  try {
+    const snap = await getDocs(collectionGroup(fsDb, "branches"));
+    if (snap.empty) {
+      grid.innerHTML = `<div class="branch-msg" style="color:var(--red)">
+        No branches found. <a href="../register/index.html" style="color:var(--accent)">Register your company first →</a>
+      </div>`;
+      return;
+    }
+    grid.innerHTML = "";
+    let first = true;
+    snap.forEach(doc => {
+      const b = doc.data();
+      if (!b.is_active) return;
+      const pill = document.createElement("div");
+      pill.className        = "branch-pill" + (first ? " selected" : "");
+      pill.dataset.id       = doc.id;
+      pill.dataset.name     = b.name;
+      pill.dataset.tenantId = doc.ref.parent.parent.id;
+      pill.innerHTML        = `<div class="branch-dot"></div>${b.name}`;
+      pill.onclick = () => {
+        document.querySelectorAll(".branch-pill").forEach(p => p.classList.remove("selected"));
+        pill.classList.add("selected");
+        selectedBranchId   = pill.dataset.id;
+        selectedBranchName = pill.dataset.name;
+        hideAlert();
+      };
+      grid.appendChild(pill);
+      if (first) {
+        selectedBranchId   = doc.id;
+        selectedBranchName = b.name;
+        first = false;
+      }
+    });
+  } catch (err) {
+    console.error("Branch load error:", err);
+    grid.innerHTML = `<div class="branch-msg" style="color:var(--red)">
+      Could not load branches. Please refresh and try again.
+    </div>`;
+  }
+}
+
+// ── PASSWORD TOGGLE ────────────────────────────────────────────────────────
+window.togglePwd = () => {
+  const inp = document.getElementById("password");
+  inp.type  = inp.type === "password" ? "text" : "password";
+};
+
+// ── LOADING STATE ──────────────────────────────────────────────────────────
+function setLoading(on) {
+  document.getElementById("login-btn").disabled     = on;
+  document.getElementById("btn-text").style.display = on ? "none" : "inline";
+  document.getElementById("spinner").classList.toggle("show", on);
+}
+
+// ── SHAKE THE CARD ─────────────────────────────────────────────────────────
+function shakeCard() {
+  const card = document.getElementById("login-card");
+  card.classList.remove("shake");
+  void card.offsetWidth; // force reflow so animation restarts
+  card.classList.add("shake");
+}
+
+// ── LOGIN FLOW ─────────────────────────────────────────────────────────────
+window.doLogin = async () => {
+  hideAlert();
+
+  const emailEl = document.getElementById("email");
+  const pwdEl   = document.getElementById("password");
+  const email   = emailEl.value.trim();
+  const password = pwdEl.value;
+
+  // Client-side validation — warning type, no shake
+  if (!selectedBranchId) {
+    showAlert({ title: "No Branch Selected", detail: "Please select a branch before signing in." }, "warning");
+    return;
+  }
+  if (!email) {
+    showAlert({ title: "Email Required", detail: "Please enter your email address." }, "warning");
+    emailEl.classList.add("field-error");
+    emailEl.focus();
+    return;
+  }
+  if (!password) {
+    showAlert({ title: "Password Required", detail: "Please enter your password." }, "warning");
+    pwdEl.classList.add("field-error");
+    pwdEl.focus();
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    // Step 1 — Firebase authentication
+    const cred    = await signInWithEmailAndPassword(fbAuth, email, password);
+    const idToken = await cred.user.getIdToken(true);
+
+    // Step 2 — Backend session creation
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ id_token: idToken, branch_id: selectedBranchId }),
+    });
+
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.detail || e.message || `Server error (${res.status})`);
+    }
+
+    const session = await res.json();
+
+    // Step 3 — Persist session
+    localStorage.setItem("nx_session",     JSON.stringify(session));
+    localStorage.setItem("nx_token",       idToken);
+    localStorage.setItem("nx_branch_id",   selectedBranchId);
+    localStorage.setItem("nx_branch_name", selectedBranchName);
+
+    // Step 4 — Success screen
+    setLoading(false);
+    document.getElementById("login-card").style.display   = "none";
+    document.getElementById("success-card").style.display = "block";
+    document.getElementById("s-name").textContent   = session.name;
+    document.getElementById("s-role").textContent   =
+      session.role.replace(/_/g," ").replace(/\b\w/g, c => c.toUpperCase());
+    document.getElementById("s-branch").textContent = `${session.branch_name} Branch`;
+    document.getElementById("s-badge").innerHTML    =
+      `<span class="role-badge role-${session.role}">${session.role.replace(/_/g," ")}</span>`;
+
+    setTimeout(() => { window.location.href = "../pos/index.html"; }, 2000);
+
+  } catch (err) {
+    setLoading(false);
+    shakeCard();
+    showAlert(err, "error");  // friendlyError() called inside showAlert
+  }
+};
+
+// Enter key submits
+document.addEventListener("keydown", e => { if (e.key === "Enter") window.doLogin(); });
+
+loadBranches();
+</script>
+</body>
+</html>

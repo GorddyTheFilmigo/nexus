@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus POS</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0d0f12;--surface:#161a21;--surface2:#1e2330;--surface3:#252c3a;
+    --border:#2a3045;--border2:#3a4460;
+    --text:#e8eaf2;--muted:#7a839a;--hint:#4a5270;
+    --accent:#4f8ef7;--accent2:#3b6fd4;--accent-glow:rgba(79,142,247,0.15);
+    --green:#3ecf8e;--green-bg:rgba(62,207,142,0.1);
+    --amber:#f5a623;--amber-bg:rgba(245,166,35,0.1);
+    --red:#f75f4f;--red-bg:rgba(247,95,79,0.1);
+    --purple:#a78bfa;--purple-bg:rgba(167,139,250,0.1);
+    --sidebar:220px;--header:52px;
+  }
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;overflow:hidden;font-size:14px}
+  #sidebar{width:var(--sidebar);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+  .logo{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+  .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff;font-family:'DM Mono',monospace}
+  .logo-text{font-size:15px;font-weight:600;letter-spacing:-0.3px}
+  .logo-sub{font-size:10px;color:var(--muted);margin-top:1px}
+  .branch-select{margin:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px}
+  .branch-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
+  .branch-name{font-size:12px;font-weight:500;flex:1;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  nav{flex:1;padding:8px 0;overflow-y:auto}
+  .nav-section{padding:8px 16px 4px;font-size:10px;font-weight:600;color:var(--hint);letter-spacing:1px;text-transform:uppercase}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;margin:1px 8px;border-radius:8px;cursor:pointer;color:var(--muted);transition:all .15s;font-size:13px;position:relative}
+  .nav-item:hover{background:var(--surface2);color:var(--text)}
+  .nav-item.active{background:var(--accent-glow);color:var(--accent);font-weight:500}
+  .nav-item.active::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--accent);border-radius:0 3px 3px 0}
+  .nav-icon{width:18px;text-align:center;font-size:14px;flex-shrink:0}
+  .user-card{margin:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px}
+  .avatar{width:32px;height:32px;border-radius:8px;background:var(--accent2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0}
+  .user-info{flex:1;min-width:0}
+  .user-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .user-role{font-size:10px;color:var(--muted)}
+  .logout-btn{width:26px;height:26px;border-radius:6px;background:var(--red-bg);border:1px solid transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--red);font-size:12px}
+  #main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  #topbar{height:var(--header);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
+  .page-title{font-size:15px;font-weight:600;flex:1}
+  .btn{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text);transition:all .15s;font-family:'DM Sans',sans-serif}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn-primary:hover{background:var(--accent2);border-color:var(--accent2);color:#fff}
+  .btn-danger{background:var(--red-bg);border-color:var(--red);color:var(--red)}
+  #content{flex:1;overflow-y:auto;padding:20px}
+  .view{display:none}
+  .view.active{display:block}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+  .stat-label{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .stat-value{font-size:24px;font-weight:600;font-family:'DM Mono',monospace;letter-spacing:-1px;margin-bottom:4px}
+  .stat-change{font-size:11px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse}
+  th{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)}
+  td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:13px}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:var(--surface2)}
+  .badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500}
+  .badge-green{background:var(--green-bg);color:var(--green)}
+  .badge-red{background:var(--red-bg);color:var(--red)}
+  .badge-amber{background:var(--amber-bg);color:var(--amber)}
+  .badge-blue{background:var(--accent-glow);color:var(--accent)}
+  .badge-purple{background:var(--purple-bg);color:var(--purple)}
+  .search-wrap{position:relative;flex:1}
+  .search-wrap input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px 8px 34px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border .15s}
+  .search-wrap input:focus{border-color:var(--accent)}
+  .search-wrap input::placeholder{color:var(--hint)}
+  .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--hint);font-size:14px}
+  #pos-layout{display:grid;grid-template-columns:1fr 320px;gap:16px;height:calc(100vh - 92px)}
+  .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  .product-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:all .15s;text-align:center}
+  .product-card:hover{border-color:var(--accent);background:var(--accent-glow)}
+  .product-card.out{opacity:.4;cursor:not-allowed}
+  .product-emoji{font-size:28px;margin-bottom:8px}
+  .product-name{font-size:12px;font-weight:500;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .product-price{font-size:14px;font-weight:600;color:var(--accent);font-family:'DM Mono',monospace}
+  .product-stock{font-size:10px;color:var(--muted);margin-top:2px}
+  #cart-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+  .cart-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .cart-items{flex:1;overflow-y:auto;padding:8px}
+  .cart-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;margin-bottom:4px;background:var(--surface2)}
+  .cart-item-name{flex:1;font-size:12px;font-weight:500}
+  .qty-ctrl{display:flex;align-items:center;gap:6px}
+  .qty-btn{width:22px;height:22px;border-radius:6px;background:var(--surface3);border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+  .qty-num{font-size:12px;font-weight:600;min-width:16px;text-align:center;font-family:'DM Mono',monospace}
+  .item-subtotal{font-size:12px;font-weight:600;color:var(--accent);font-family:'DM Mono',monospace;min-width:54px;text-align:right}
+  .remove-item{color:var(--hint);cursor:pointer;font-size:14px}
+  .remove-item:hover{color:var(--red)}
+  .cart-summary{padding:14px 16px;border-top:1px solid var(--border)}
+  .summary-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px}
+  .summary-total{display:flex;justify-content:space-between;font-size:16px;font-weight:600;margin:10px 0;font-family:'DM Mono',monospace}
+  .pay-methods{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
+  .pay-method{padding:7px 4px;text-align:center;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:11px;font-weight:500;background:var(--surface2);transition:all .15s}
+  .pay-method.active{border-color:var(--accent);background:var(--accent-glow);color:var(--accent)}
+  .checkout-btn{width:100%;padding:12px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s}
+  .checkout-btn:hover:not(:disabled){background:var(--accent2)}
+  .checkout-btn:disabled{opacity:.4;cursor:not-allowed}
+  .cat-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .cat-tab{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--muted);transition:all .15s}
+  .cat-tab.active{background:var(--accent-glow);border-color:var(--accent);color:var(--accent)}
+  .session-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  /* ── Notification stack ── */
+  #notif-stack{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none}
+  .notif{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-radius:12px;font-size:13px;font-weight:500;min-width:280px;max-width:360px;pointer-events:all;opacity:0;transform:translateX(20px);transition:opacity .25s ease,transform .25s ease;border:1px solid transparent;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+  .notif.show{opacity:1;transform:translateX(0)}
+  .notif.hide{opacity:0;transform:translateX(20px)}
+  .notif-success{background:#0d2318;border-color:#1a4a2e;color:var(--green)}
+  .notif-error  {background:#250f0d;border-color:#4a1a18;color:#ff8077}
+  .notif-warning{background:#251a08;border-color:#4a3010;color:var(--amber)}
+  .notif-info   {background:#0d1525;border-color:#1a2a4a;color:var(--accent)}
+  .notif-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+  .notif-body{flex:1;min-width:0}
+  .notif-title{font-size:12px;font-weight:600;margin-bottom:2px;letter-spacing:.2px}
+  .notif-msg{font-size:12px;font-weight:400;opacity:.85;line-height:1.4;word-break:break-word}
+  .notif-close{width:18px;height:18px;flex-shrink:0;cursor:pointer;opacity:.5;font-size:14px;line-height:18px;text-align:center;border-radius:4px;transition:opacity .15s}
+  .notif-close:hover{opacity:1}
+  .notif-progress{position:absolute;bottom:0;left:0;height:2px;border-radius:0 0 12px 12px;animation:notif-shrink linear forwards}
+  @keyframes notif-shrink{from{width:100%}to{width:0%}}
+  .notif-success .notif-progress{background:var(--green)}
+  .notif-error   .notif-progress{background:#ff8077}
+  .notif-warning .notif-progress{background:var(--amber)}
+  .notif-info    .notif-progress{background:var(--accent)}
+  #modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:center;justify-content:center}
+  #modal-overlay.show{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:24px;width:480px;max-width:90vw;max-height:90vh;overflow-y:auto}
+  .modal-title{font-size:16px;font-weight:600;margin-bottom:16px}
+  .modal-field{margin-bottom:14px}
+  .modal-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:500}
+  .modal-field input,.modal-field select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border .15s}
+  .modal-field input:focus,.modal-field select:focus{border-color:var(--accent)}
+  .modal-field select option{background:var(--surface2)}
+  .modal-field input[type="checkbox"]{width:auto;accent-color:var(--accent)}
+  .modal-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+  .modal-autogen{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:14px}
+  .modal-autogen-label{font-size:10px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+  .modal-autogen-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .modal-autogen-item label{font-size:10px;color:var(--muted);margin-bottom:3px;display:block}
+  .modal-autogen-item span{font-size:12px;font-family:'DM Mono',monospace;color:var(--text)}
+  .margin-preview{font-size:11px;margin-top:-8px;margin-bottom:10px;min-height:16px}
+  .stock-bar-wrap{width:80px;background:var(--surface3);border-radius:3px;height:5px;overflow:hidden}
+  .stock-bar{height:100%;border-radius:3px;background:var(--green)}
+  .loading-state{text-align:center;padding:40px 20px;color:var(--hint)}
+  .loading-state .spinner-big{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .report-period-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:0}
+  ::-webkit-scrollbar{width:4px}
+  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div class="logo">
+    <div class="logo-icon">NX</div>
+    <div><div class="logo-text">Nexus POS</div><div class="logo-sub">Multi-Branch</div></div>
+  </div>
+  <div class="branch-select">
+    <div class="branch-dot"></div>
+    <div class="branch-name" id="sb-branch-name">Loading…</div>
+  </div>
+  <nav>
+    <div class="nav-section">Operations</div>
+    <div class="nav-item active" id="nav-pos" onclick="go('pos')"><span class="nav-icon">⬡</span> Point of Sale</div>
+    <div class="nav-item" id="nav-orders" onclick="go('orders')"><span class="nav-icon">◈</span> Orders</div>
+    <div class="nav-section">Management</div>
+    <div class="nav-item" id="nav-inventory" onclick="go('inventory')"><span class="nav-icon">▦</span> Inventory</div>
+    <div class="nav-item" id="nav-reports" onclick="go('reports')" style="display:none"><span class="nav-icon">▲</span> Reports</div>
+    <div class="nav-section">Admin</div>
+    <div class="nav-item" id="nav-users" onclick="go('users')" style="display:none"><span class="nav-icon">◉</span> Users & Roles</div>
+    <div class="nav-item" id="nav-sessions" onclick="go('sessions')" style="display:none"><span class="nav-icon">◌</span> Session Log</div>
+  </nav>
+  <div class="user-card">
+    <div class="avatar" id="sb-avatar">—</div>
+    <div class="user-info">
+      <div class="user-name" id="sb-name">—</div>
+      <div class="user-role" id="sb-role">—</div>
+    </div>
+    <button class="logout-btn" title="Logout" onclick="doLogout()">⏻</button>
+  </div>
+</div>
+
+<div id="main">
+  <div id="topbar">
+    <div class="page-title" id="page-title">Point of Sale</div>
+    <div id="topbar-meta" style="font-size:12px;color:var(--muted)"></div>
+    <div id="topbar-actions"></div>
+  </div>
+  <div id="content">
+
+    <!-- ═══ POS VIEW ═══════════════════════════════════════════════════ -->
+    <div id="view-pos" class="view active">
+      <div id="pos-layout">
+        <div style="display:flex;flex-direction:column;gap:12px;overflow:hidden">
+          <div style="display:flex;gap:10px;align-items:center">
+            <div class="search-wrap"><span class="search-icon">⌕</span>
+              <input type="text" placeholder="Search products…" oninput="filterProducts(this.value)">
+            </div>
+          </div>
+          <div class="cat-tabs" id="cat-tabs"></div>
+          <div id="product-grid" class="product-grid" style="overflow-y:auto;max-height:calc(100vh - 230px)">
+            <div class="loading-state" style="grid-column:1/-1">
+              <div class="spinner-big"></div>Loading products…
+            </div>
+          </div>
+        </div>
+        <div id="cart-panel">
+          <div class="cart-header">
+            <span style="font-size:14px;font-weight:600">Cart</span>
+            <span id="cart-count" style="font-size:12px;color:var(--muted)">0 items</span>
+            <button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="clearCart()">Clear</button>
+          </div>
+          <div class="cart-items" id="cart-items">
+            <div style="text-align:center;padding:40px 20px;color:var(--hint)">
+              <div style="font-size:28px;margin-bottom:8px">⬡</div>
+              <div style="font-size:12px">Add products to cart</div>
+            </div>
+          </div>
+          <div class="cart-summary">
+            <div class="summary-row"><span>Subtotal</span><span id="s-sub" style="font-family:'DM Mono',monospace">KES 0</span></div>
+            <div class="summary-row"><span>Tax (16% VAT)</span><span id="s-tax" style="font-family:'DM Mono',monospace">KES 0</span></div>
+            <div class="summary-row"><span>Discount</span><span id="s-disc" style="font-family:'DM Mono',monospace;color:var(--green)">- KES 0</span></div>
+            <div class="summary-total"><span>Total</span><span id="s-total">KES 0</span></div>
+            <div class="pay-methods">
+              <div class="pay-method active" onclick="setPayMethod(this,'cash')">Cash</div>
+              <div class="pay-method" onclick="setPayMethod(this,'mpesa')">M-Pesa</div>
+              <div class="pay-method" onclick="setPayMethod(this,'card')">Card</div>
+            </div>
+            <button class="checkout-btn" id="checkout-btn" onclick="checkout()" disabled>Checkout →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ORDERS VIEW ════════════════════════════════════════════════ -->
+    <div id="view-orders" class="view">
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
+        <div class="search-wrap"><span class="search-icon">⌕</span><input type="text" placeholder="Search orders…"></div>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Order ID</th><th>Cashier</th><th>Items</th><th>Payment</th><th>Total</th><th>Profit</th><th>Status</th><th>Time</th></tr></thead>
+          <tbody id="orders-tbody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ INVENTORY VIEW ═════════════════════════════════════════════ -->
+    <div id="view-inventory" class="view">
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
+        <div class="search-wrap"><span class="search-icon">⌕</span><input type="text" placeholder="Search products…" oninput="filterInventory(this.value)"></div>
+        <button class="btn btn-primary" onclick="openAddProduct()">+ Add Product</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table>
+          <thead>
+            <tr>
+              <th>Product / Batch</th>
+              <th>Category</th>
+              <th>Cost</th>
+              <th>Selling</th>
+              <th>Margin</th>
+              <th>Stock</th>
+              <th>Level</th>
+              <th>Expiry</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="inv-tbody"><tr><td colspan="9" style="text-align:center;color:var(--muted);padding:30px">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ REPORTS VIEW ═══════════════════════════════════════════════ -->
+    <div id="view-reports" class="view">
+
+      <!-- Filters row -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+        <div class="cat-tabs report-period-tabs" id="report-period-tabs">
+          <div class="cat-tab active" onclick="setReportPeriod('day',this)">Today</div>
+          <div class="cat-tab" onclick="setReportPeriod('week',this)">This Week</div>
+          <div class="cat-tab" onclick="setReportPeriod('month',this)">This Month</div>
+          <div class="cat-tab" onclick="setReportPeriod('all',this)">All Time</div>
+        </div>
+        <select id="report-cashier-filter" onchange="loadReports()" style="
+          background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+          padding:6px 10px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;
+          margin-left:auto;outline:none;cursor:pointer">
+          <option value="">All Cashiers</option>
+        </select>
+      </div>
+
+      <!-- KPI cards -->
+      <div class="grid-4" style="margin-bottom:16px">
+        <div class="stat-card">
+          <div class="stat-label">Revenue</div>
+          <div class="stat-value" id="r-revenue" style="color:var(--accent)">—</div>
+          <div class="stat-change" id="r-orders-sub">0 orders</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Gross Profit</div>
+          <div class="stat-value" id="r-profit" style="color:var(--green)">—</div>
+          <div class="stat-change" id="r-margin">0% margin</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Cost of Goods</div>
+          <div class="stat-value" id="r-cogs" style="color:var(--amber)">—</div>
+          <div class="stat-change" id="r-avg">Avg ticket: —</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Payment Split</div>
+          <div id="r-pay" style="margin-top:4px;line-height:1.8">—</div>
+        </div>
+      </div>
+
+      <!-- Two-column: cashier table + daily breakdown -->
+      <div class="grid-2">
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">Profit by Cashier</div>
+          <table>
+            <thead>
+              <tr><th>Cashier</th><th>Orders</th><th>Revenue</th><th>Profit</th><th>Margin</th></tr>
+            </thead>
+            <tbody id="r-cashier-tbody">
+              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">Daily Breakdown</div>
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Orders</th><th>Revenue</th><th>Profit</th></tr>
+            </thead>
+            <tbody id="r-daily-tbody">
+              <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ USERS VIEW ═════════════════════════════════════════════════ -->
+    <div id="view-users" class="view">
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
+        <div class="search-wrap"><span class="search-icon">⌕</span><input type="text" placeholder="Search users…"></div>
+        <button class="btn btn-primary" onclick="openAddUser()">+ Add User</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>User</th><th>Role</th><th>Branch</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>
+          <tbody id="users-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ SESSIONS VIEW ══════════════════════════════════════════════ -->
+    <div id="view-sessions" class="view">
+      <div style="margin-bottom:16px;display:flex;gap:10px">
+        <div class="search-wrap"><span class="search-icon">⌕</span><input type="text" placeholder="Filter by user…"></div>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>User</th><th>Branch</th><th>Login</th><th>Logout</th><th>Duration</th><th>Sales</th><th>Status</th></tr></thead>
+          <tbody id="sessions-tbody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<div id="modal-overlay"><div class="modal" id="modal-box"></div></div>
+<div id="notif-stack"></div>
+
+<script>
+// ── SESSION / AUTH ─────────────────────────────────────────────────────────
+const session = JSON.parse(localStorage.getItem("nx_session") || "null");
+const token   = localStorage.getItem("nx_token");
+
+if (!session || !token) { window.location.href = "../login/index.html"; }
+
+const API      = "http://localhost:8000/api/v1";
+const branchId = session.branch_id;
+const tenantId = session.tenant_id;
+const role     = session.role;
+const userName = session.name;
+
+// ── SIDEBAR SETUP ──────────────────────────────────────────────────────────
+document.getElementById("sb-branch-name").textContent = session.branch_name || branchId;
+document.getElementById("sb-name").textContent        = userName;
+document.getElementById("sb-role").textContent        = role.replace(/_/g," ");
+document.getElementById("sb-avatar").textContent      = userName.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+document.getElementById("topbar-meta").textContent    = new Date().toLocaleDateString("en-KE",{weekday:"short",day:"2-digit",month:"short",year:"numeric"});
+
+if (["super_admin","branch_manager","supervisor"].includes(role)) {
+  document.getElementById("nav-reports").style.display  = "flex";
+  document.getElementById("nav-users").style.display    = "flex";
+  document.getElementById("nav-sessions").style.display = "flex";
+}
+
+// ── API HELPER ─────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const res = await fetch(`${API}${path}`, {
+    ...opts,
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type":  "application/json",
+      ...(opts.headers || {}),
+    },
+  });
+  if (res.status === 401) { doLogout(); return null; }
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// ── LOGOUT ─────────────────────────────────────────────────────────────────
+async function doLogout() {
+  try { await api("/auth/logout", { method: "POST" }); } catch (_) {}
+  localStorage.clear();
+  window.location.href = "../login/index.html";
+}
+
+// ── NAVIGATION ─────────────────────────────────────────────────────────────
+const NAV_IDS = { pos:"nav-pos", orders:"nav-orders", inventory:"nav-inventory", reports:"nav-reports", users:"nav-users", sessions:"nav-sessions" };
+
+function go(view) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.getElementById("view-" + view).classList.add("active");
+  const titles = {pos:"Point of Sale",orders:"Orders",inventory:"Inventory",reports:"Reports",users:"Users & Roles",sessions:"Session Log"};
+  document.getElementById("page-title").textContent = titles[view] || view;
+  const navEl = document.getElementById(NAV_IDS[view]);
+  if (navEl) navEl.classList.add("active");
+  if (view === "orders")    loadOrders();
+  if (view === "inventory") loadInventory();
+  if (view === "reports")   loadReports();
+  if (view === "users")     loadUsers();
+  if (view === "sessions")  loadSessions();
+}
+
+// ── POS ────────────────────────────────────────────────────────────────────
+let PRODUCTS = [], cart = {}, activeCat = "All", payMethod = "cash";
+
+async function loadProducts() {
+  try {
+    const data = await api(`/inventory/?branch_id=${branchId}`);
+    if (!data) return;
+    PRODUCTS = Array.isArray(data) ? data : (data.products || data.items || data.data || []);
+    if (PRODUCTS.length > 0) {
+      console.log("[Nexus POS] Raw product shape:", JSON.stringify(PRODUCTS[0], null, 2));
+    }
+    renderCategories();
+    renderProducts();
+  } catch (e) {
+    document.getElementById("product-grid").innerHTML =
+      `<div class="loading-state" style="grid-column:1/-1;color:var(--red)">Error: ${e.message}</div>`;
+  }
+}
+
+const EMOJIS = {Beverages:"🥤",Bakery:"🍞",Grains:"🌾",Dairy:"🥛",Produce:"🍅",Oils:"🫙",Meat:"🍖"};
+
+// Resolve the product's unique ID across possible backend key names
+function pid(p) {
+  return pick(p, "product_id","productId","id","_id","uid") || "";
+}
+
+function renderCategories() {
+  const cats = ["All", ...new Set(PRODUCTS.map(p => pick(p,"category","category_name","categoryName","type") || "Other"))];
+  document.getElementById("cat-tabs").innerHTML = cats.map(c =>
+    `<div class="cat-tab${c==="All"?" active":""}" onclick="setCat('${c}',this)">${c}</div>`
+  ).join("");
+}
+
+function setCat(c, el) {
+  activeCat = c;
+  document.querySelectorAll(".cat-tab").forEach(t => t.classList.remove("active"));
+  el.classList.add("active");
+  renderProducts();
+}
+
+function filterProducts(q) {
+  const list = PRODUCTS.filter(p =>
+    (p.name||"").toLowerCase().includes(q.toLowerCase()) &&
+    (activeCat === "All" || pick(p,"category","category_name","categoryName","type") === activeCat)
+  );
+  renderProducts(list);
+}
+
+function renderProducts(list) {
+  const ps = list || PRODUCTS.filter(p =>
+    activeCat === "All" || pick(p,"category","category_name","categoryName","type") === activeCat
+  );
+  if (!ps.length) {
+    document.getElementById("product-grid").innerHTML =
+      `<div class="loading-state" style="grid-column:1/-1">No products found</div>`;
+    return;
+  }
+  document.getElementById("product-grid").innerHTML = ps.map(p => {
+    const id    = pid(p);
+    const sell  = pick(p,"selling_price","sellingPrice","sell_price","price","unit_price") || 0;
+    const stock = pick(p,"stock","quantity","qty","stock_quantity","stockQuantity") || 0;
+    const cat   = pick(p,"category","category_name","categoryName","type") || "";
+    return `
+    <div class="product-card${stock===0?" out":""}" onclick="${stock>0?`addToCart('${id}')`:``}">
+      <div class="product-emoji">${EMOJIS[cat]||"📦"}</div>
+      <div class="product-name">${p.name||"Unnamed"}</div>
+      <div class="product-price">KES ${Number(sell).toLocaleString()}</div>
+      <div class="product-stock">${stock===0?"Out of stock":stock+" in stock"}</div>
+    </div>`;
+  }).join("");
+}
+
+function addToCart(id) {
+  const p = PRODUCTS.find(x => pid(x) === id);
+  const stock = p ? (pick(p,"stock","quantity","qty","stock_quantity","stockQuantity") || 0) : 0;
+  if (!p || stock === 0) return;
+  if (!cart[id]) cart[id] = {...p, qty: 0};
+  cart[id].qty++;
+  renderCart();
+  notifySuccess(`${p.name} added to cart`);
+}
+
+function removeFromCart(id) { delete cart[id]; renderCart(); }
+function changeQty(id, d) {
+  if (!cart[id]) return;
+  cart[id].qty += d;
+  if (cart[id].qty <= 0) delete cart[id];
+  renderCart();
+}
+function clearCart() { cart = {}; renderCart(); }
+
+function renderCart() {
+  const items = Object.values(cart);
+  document.getElementById("cart-count").textContent = `${items.reduce((s,i)=>s+i.qty,0)} items`;
+  const el = document.getElementById("cart-items");
+  if (!items.length) {
+    el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--hint)"><div style="font-size:28px;margin-bottom:8px">⬡</div><div style="font-size:12px">Add products to cart</div></div>`;
+    updateTotals(0,0); document.getElementById("checkout-btn").disabled = true; return;
+  }
+  el.innerHTML = items.map(i => {
+    const id   = pid(i);
+    const sell = pick(i,"selling_price","sellingPrice","price","unit_price") || 0;
+    const cat  = pick(i,"category","category_name","categoryName","type") || "";
+    return `
+    <div class="cart-item">
+      <span style="font-size:16px">${EMOJIS[cat]||"📦"}</span>
+      <div class="cart-item-name">${i.name||"Item"}</div>
+      <div class="qty-ctrl">
+        <button class="qty-btn" onclick="changeQty('${id}',-1)">−</button>
+        <span class="qty-num">${i.qty}</span>
+        <button class="qty-btn" onclick="changeQty('${id}',1)">+</button>
+      </div>
+      <span class="item-subtotal">KES ${(Number(sell)*i.qty).toLocaleString()}</span>
+      <span class="remove-item" onclick="removeFromCart('${id}')">✕</span>
+    </div>`;
+  }).join("");
+  const sub = items.reduce((s,i) => s + (pick(i,"selling_price","sellingPrice","price","unit_price")||0)*i.qty, 0);
+  updateTotals(sub, Math.round(sub*0.16));
+  document.getElementById("checkout-btn").disabled = false;
+}
+
+function updateTotals(sub, tax) {
+  document.getElementById("s-sub").textContent   = `KES ${sub.toLocaleString()}`;
+  document.getElementById("s-tax").textContent   = `KES ${tax.toLocaleString()}`;
+  document.getElementById("s-disc").textContent  = `- KES 0`;
+  document.getElementById("s-total").textContent = `KES ${(sub+tax).toLocaleString()}`;
+}
+
+function setPayMethod(el, m) {
+  payMethod = m;
+  document.querySelectorAll(".pay-method").forEach(x => x.classList.remove("active"));
+  el.classList.add("active");
+}
+
+async function checkout() {
+  const items = Object.values(cart);
+  if (!items.length) return;
+  document.getElementById("checkout-btn").disabled = true;
+  document.getElementById("checkout-btn").textContent = "Processing…";
+  try {
+    const body = {
+      items: items.map(i => ({
+        product_id: pid(i),
+        name:       i.name,
+        qty:        i.qty,
+        unit_price: pick(i,"selling_price","sellingPrice","price","unit_price") || 0,
+        cost_price: pick(i,"cost_price","costPrice","cost","buying_price","purchase_price") || 0,
+      })),
+      payment_method: payMethod,
+      discount: 0,
+    };
+    const data = await api("/sales/", { method: "POST", body: JSON.stringify(body) });
+    if (!data) return;
+    cart = {};
+    renderCart();
+    await loadProducts();
+    notifySuccess(`Sale ${data.order_id} completed — KES ${data.total.toLocaleString()}`);
+    localStorage.setItem("nx_last_order", JSON.stringify(data));
+    setTimeout(() => window.open("../receipt/receipt.html", "_blank"), 800);
+  } catch (e) {
+    notifyError(e.message);
+  } finally {
+    document.getElementById("checkout-btn").disabled = false;
+    document.getElementById("checkout-btn").textContent = "Checkout →";
+  }
+}
+
+// ── ORDERS ─────────────────────────────────────────────────────────────────
+async function loadOrders() {
+  try {
+    const data = await api(`/sales/?branch_id=${branchId}&limit=50`);
+    if (!data) return;
+    document.getElementById("orders-tbody").innerHTML = data.orders.length
+      ? data.orders.map(o => {
+          const d = new Date(o.created_at._seconds ? o.created_at._seconds*1000 : o.created_at);
+          const profit = o.gross_profit != null ? `<span style="color:var(--green);font-family:'DM Mono',monospace">KES ${Number(o.gross_profit).toLocaleString()}</span>` : `<span style="color:var(--hint)">—</span>`;
+          return `<tr>
+            <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent)">${o.order_id}</td>
+            <td>${o.cashier_name}</td>
+            <td>${o.items?.length || 0}</td>
+            <td><span class="badge ${o.payment_method==='mpesa'?'badge-green':o.payment_method==='card'?'badge-blue':'badge-amber'}">${o.payment_method}</span></td>
+            <td style="font-family:'DM Mono',monospace">KES ${Number(o.total).toLocaleString()}</td>
+            <td>${profit}</td>
+            <td><span class="badge ${o.status==='completed'?'badge-green':o.status==='refunded'?'badge-amber':'badge-red'}">${o.status}</span></td>
+            <td style="color:var(--muted)">${d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</td>
+          </tr>`;
+        }).join("")
+      : `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px">No orders yet</td></tr>`;
+  } catch (e) {
+    document.getElementById("orders-tbody").innerHTML = `<tr><td colspan="8" style="color:var(--red);padding:16px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+// ── FIELD RESOLVER ─────────────────────────────────────────────────────────
+// Picks the first defined non-null value from an object across multiple possible key names.
+// This makes the UI resilient to backend naming differences (snake_case vs camelCase, etc.)
+function pick(obj, ...keys) {
+  for (const k of keys) {
+    if (obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
+  }
+  return null;
+}
+
+// ── INVENTORY ──────────────────────────────────────────────────────────────
+let ALL_INVENTORY = [];
+
+async function loadInventory() {
+  try {
+    const data = await api(`/inventory/?branch_id=${branchId}`);
+    if (!data) return;
+    // Support both { products: [...] } and flat array responses
+    ALL_INVENTORY = Array.isArray(data) ? data : (data.products || data.items || data.data || []);
+    // Log first product to console so you can see exact field names from your backend
+    if (ALL_INVENTORY.length > 0) {
+      console.log("[Nexus POS] Sample product fields:", JSON.stringify(ALL_INVENTORY[0], null, 2));
+    }
+    renderInventoryTable(ALL_INVENTORY);
+  } catch(e) {
+    document.getElementById("inv-tbody").innerHTML = `<tr><td colspan="9" style="color:var(--red);padding:16px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+function filterInventory(q) {
+  const filtered = ALL_INVENTORY.filter(p => (p.name||"").toLowerCase().includes(q.toLowerCase()));
+  renderInventoryTable(filtered);
+}
+
+function renderInventoryTable(products) {
+  if (!products.length) {
+    document.getElementById("inv-tbody").innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:30px">No products found. Add your first product.</td></tr>`;
+    return;
+  }
+  document.getElementById("inv-tbody").innerHTML = products.map(p => {
+    // Resolve field names flexibly — tries every common variation
+    const cost  = pick(p, "cost_price","costPrice","cost","buying_price","buyingPrice","purchase_price");
+    const sell  = pick(p, "selling_price","sellingPrice","sell_price","sellPrice","price","unit_price") || 0;
+    const stock = pick(p, "stock","quantity","qty","stock_quantity","stockQuantity") || 0;
+    const thresh = pick(p, "low_stock_threshold","lowStockThreshold","reorder_level","reorderLevel","min_stock") || 10;
+    const batch = pick(p, "batch_number","batchNumber","batch","lot_number","lotNumber");
+    const barcode = pick(p, "barcode","bar_code","barCode","ean","ean13","sku");
+    const expiry = pick(p, "expiry_date","expiryDate","expiry","expiration_date","expirationDate","expires_at","best_before");
+    const category = pick(p, "category","category_name","categoryName","type") || "—";
+    const id = pick(p, "product_id","productId","id","_id","uid") || "";
+
+    const pct      = Math.min(Math.round((stock / Math.max(stock * 2, 100)) * 100), 100);
+    const barColor = stock === 0 ? "var(--red)" : stock < thresh ? "var(--amber)" : "var(--green)";
+
+    // Margin
+    let marginHtml = `<span style="color:var(--hint)">—</span>`;
+    if (cost != null && Number(cost) > 0 && Number(sell) > 0) {
+      const m = ((sell - cost) / sell * 100).toFixed(1);
+      const cls = parseFloat(m) >= 40 ? "badge-green" : parseFloat(m) >= 20 ? "badge-amber" : "badge-red";
+      marginHtml = `<span class="badge ${cls}">${m}%</span>`;
+    }
+
+    // Expiry
+    let expiryHtml = `<span style="color:var(--hint)">—</span>`;
+    if (expiry) {
+      const daysLeft = Math.ceil((new Date(expiry) - Date.now()) / 86400000);
+      if (daysLeft <= 0)        expiryHtml = `<span class="badge badge-red">Expired</span>`;
+      else if (daysLeft <= 30)  expiryHtml = `<span class="badge badge-amber">${expiry} · ${daysLeft}d left</span>`;
+      else                      expiryHtml = `<span style="font-size:12px;color:var(--muted)">${expiry}</span>`;
+    }
+
+    const statusCls = stock === 0 ? "badge-red" : stock < thresh ? "badge-amber" : "badge-green";
+    const statusTxt = stock === 0 ? "Out of stock" : stock < thresh ? "Low stock" : "In stock";
+    // Show "Set cost" nudge if cost is missing so user knows they can fix it
+    const costHtml = cost != null
+      ? `<span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">KES ${Number(cost).toLocaleString()}</span>`
+      : `<button class="btn" style="padding:2px 8px;font-size:10px;color:var(--amber);border-color:var(--amber);background:var(--amber-bg)" onclick="openEditProduct('${id}')">Set cost</button>`;
+
+    return `<tr>
+      <td>
+        <div style="font-weight:500">${p.name || "Unnamed"}</div>
+        ${batch   ? `<div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--hint);margin-top:2px">Batch: ${batch}</div>` : ""}
+        ${barcode ? `<div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--hint)">Barcode: ${barcode}</div>` : ""}
+      </td>
+      <td style="color:var(--muted)">${category}</td>
+      <td>${costHtml}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">KES ${Number(sell).toLocaleString()}</td>
+      <td>${marginHtml}</td>
+      <td style="font-family:'DM Mono',monospace">${stock}</td>
+      <td><div class="stock-bar-wrap"><div class="stock-bar" style="width:${pct}%;background:${barColor}"></div></div></td>
+      <td>${expiryHtml}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="badge ${statusCls}">${statusTxt}</span>
+          <button class="btn" style="padding:2px 8px;font-size:10px" onclick="openEditProduct('${id}')" title="Edit pricing">✎</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+// ── EDIT PRODUCT PRICING ───────────────────────────────────────────────────
+function openEditProduct(id) {
+  const p    = ALL_INVENTORY.find(x => pid(x) === id);
+  if (!p) return;
+  const cost = pick(p,"cost_price","costPrice","cost","buying_price","purchase_price");
+  const sell = pick(p,"selling_price","sellingPrice","price","unit_price") || 0;
+  const stock = pick(p,"stock","quantity","qty") || 0;
+  const thresh = pick(p,"low_stock_threshold","lowStockThreshold","reorder_level") || 10;
+  const expiry = pick(p,"expiry_date","expiryDate","expiry","expiration_date");
+
+  showModal(`
+    <div class="modal-title">Edit: ${p.name}</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px">
+      Update cost price, selling price, stock and expiry for this product.
+    </p>
+
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Cost Price (KES) <span style="color:var(--red)">*</span></label>
+        <input type="number" id="ep-cost" value="${cost ?? ""}" placeholder="0.00" min="0" step="0.01" oninput="updateEditMargin()">
+      </div>
+      <div class="modal-field">
+        <label>Selling Price (KES) <span style="color:var(--red)">*</span></label>
+        <input type="number" id="ep-price" value="${sell}" placeholder="0.00" min="0" step="0.01" oninput="updateEditMargin()">
+      </div>
+    </div>
+    <div class="margin-preview" id="edit-margin-preview"></div>
+
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Stock Quantity</label>
+        <input type="number" id="ep-stock" value="${stock}" min="0">
+      </div>
+      <div class="modal-field">
+        <label>Low Stock Alert</label>
+        <input type="number" id="ep-threshold" value="${thresh}" min="0">
+      </div>
+    </div>
+
+    <div class="modal-field" style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <input type="checkbox" id="ep-has-expiry" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)"
+        ${expiry ? "checked" : ""}
+        onchange="document.getElementById('ep-expiry-wrap').style.display=this.checked?'block':'none'">
+      <label for="ep-has-expiry" style="margin:0;cursor:pointer;font-size:13px;color:var(--text)">This product has an expiry date</label>
+    </div>
+    <div id="ep-expiry-wrap" style="display:${expiry ? "block":"none"}" class="modal-field">
+      <label>Expiry Date</label>
+      <input type="date" id="ep-expiry" value="${expiry || ""}" min="${new Date().toISOString().split('T')[0]}">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitEditProduct('${id}')">Save Changes</button>
+    </div>
+  `);
+  // Trigger preview on open
+  setTimeout(updateEditMargin, 50);
+}
+
+function updateEditMargin() {
+  const cost  = parseFloat(document.getElementById("ep-cost")?.value)  || 0;
+  const price = parseFloat(document.getElementById("ep-price")?.value) || 0;
+  const el    = document.getElementById("edit-margin-preview");
+  if (!el) return;
+  if (cost > 0 && price > 0) {
+    if (price < cost) {
+      el.innerHTML = `<span style="color:var(--red)">⚠ Selling price is below cost price</span>`;
+    } else {
+      const margin = ((price - cost) / price * 100).toFixed(1);
+      const profit = (price - cost).toFixed(2);
+      el.innerHTML = `<span style="color:var(--green)">✓ Margin: ${margin}% · Profit per unit: KES ${profit}</span>`;
+    }
+  } else { el.innerHTML = ""; }
+}
+
+async function submitEditProduct(id) {
+  const cost      = parseFloat(document.getElementById("ep-cost").value);
+  const price     = parseFloat(document.getElementById("ep-price").value);
+  const stock     = parseInt(document.getElementById("ep-stock").value) || 0;
+  const threshold = parseInt(document.getElementById("ep-threshold").value) || 10;
+  const hasExpiry = document.getElementById("ep-has-expiry").checked;
+  const expiry    = hasExpiry ? document.getElementById("ep-expiry").value : null;
+
+  if (isNaN(cost)  || cost  < 0) { notifyWarning("Enter a valid cost price"); return; }
+  if (isNaN(price) || price < 0) { notifyWarning("Enter a valid selling price"); return; }
+  if (price < cost) { notifyWarning("Selling price cannot be below cost price"); return; }
+  if (hasExpiry && !expiry) { notifyWarning("Please enter the expiry date"); return; }
+
+  const body = {
+    cost_price:          cost,
+    selling_price:       price,
+    price,
+    stock,
+    low_stock_threshold: threshold,
+    expiry_date:         expiry,
+    has_expiry:          hasExpiry,
+  };
+
+  try {
+    await api(`/inventory/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+    closeModal();
+    notifySuccess("Product updated successfully");
+    loadInventory();
+    loadProducts();
+  } catch(e) {
+    notifyError(e.message);
+  }
+}
+
+// ── ADD PRODUCT MODAL ──────────────────────────────────────────────────────
+function generateEAN13Preview() {
+  let base = `00${Date.now().toString().slice(-9)}`;
+  let sum = 0;
+  for (let i = 0; i < 12; i++) sum += parseInt(base[i]) * (i % 2 === 0 ? 1 : 3);
+  return `${base}${(10 - (sum % 10)) % 10}`;
+}
+
+function openAddProduct() {
+  const now    = new Date();
+  const yyyymm = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  showModal(`
+    <div class="modal-title">Add New Product</div>
+
+    <div class="modal-field">
+      <label>Product Name <span style="color:var(--red)">*</span></label>
+      <input type="text" id="mp-name" placeholder="e.g. Fanta Orange 500ml">
+    </div>
+
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Category <span style="color:var(--red)">*</span></label>
+        <input type="text" id="mp-cat" placeholder="e.g. Beverages">
+      </div>
+      <div class="modal-field">
+        <label>Unit</label>
+        <select id="mp-unit">
+          <option value="piece">Piece</option>
+          <option value="kg">Kg</option>
+          <option value="litre">Litre</option>
+          <option value="pack">Pack</option>
+          <option value="box">Box</option>
+          <option value="bottle">Bottle</option>
+          <option value="bag">Bag</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Cost Price (KES) <span style="color:var(--red)">*</span></label>
+        <input type="number" id="mp-cost" placeholder="0.00" min="0" step="0.01" oninput="updateMarginPreview()">
+      </div>
+      <div class="modal-field">
+        <label>Selling Price (KES) <span style="color:var(--red)">*</span></label>
+        <input type="number" id="mp-price" placeholder="0.00" min="0" step="0.01" oninput="updateMarginPreview()">
+      </div>
+    </div>
+    <div class="margin-preview" id="margin-preview"></div>
+
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Initial Stock</label>
+        <input type="number" id="mp-stock" placeholder="0" min="0">
+      </div>
+      <div class="modal-field">
+        <label>Low Stock Alert</label>
+        <input type="number" id="mp-threshold" placeholder="10" min="0">
+      </div>
+    </div>
+
+    <div class="modal-field" style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <input type="checkbox" id="mp-has-expiry" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)" onchange="document.getElementById('mp-expiry-wrap').style.display=this.checked?'block':'none'">
+      <label for="mp-has-expiry" style="margin:0;cursor:pointer;font-size:13px;color:var(--text)">This product has an expiry date</label>
+    </div>
+    <div id="mp-expiry-wrap" style="display:none" class="modal-field">
+      <label>Expiry Date</label>
+      <input type="date" id="mp-expiry" min="${new Date().toISOString().split('T')[0]}">
+    </div>
+
+    <div class="modal-autogen">
+      <div class="modal-autogen-label">Auto-generated on save</div>
+      <div class="modal-autogen-grid">
+        <div class="modal-autogen-item">
+          <label>Batch Number</label>
+          <span>BCH-${yyyymm}-????</span>
+        </div>
+        <div class="modal-autogen-item">
+          <label>Barcode (EAN-13)</label>
+          <span>${generateEAN13Preview()}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddProduct()">Add Product</button>
+    </div>
+  `);
+}
+
+function updateMarginPreview() {
+  const cost  = parseFloat(document.getElementById("mp-cost")?.value)  || 0;
+  const price = parseFloat(document.getElementById("mp-price")?.value) || 0;
+  const el    = document.getElementById("margin-preview");
+  if (!el) return;
+  if (cost > 0 && price > 0) {
+    if (price < cost) {
+      el.innerHTML = `<span style="color:var(--red)">⚠ Selling price is below cost price</span>`;
+    } else {
+      const margin = ((price - cost) / price * 100).toFixed(1);
+      const profit = (price - cost).toFixed(2);
+      el.innerHTML = `<span style="color:var(--green)">✓ Margin: ${margin}% · Profit per unit: KES ${profit}</span>`;
+    }
+  } else {
+    el.innerHTML = "";
+  }
+}
+
+async function submitAddProduct() {
+  const name      = document.getElementById("mp-name").value.trim();
+  const category  = document.getElementById("mp-cat").value.trim();
+  const costRaw   = document.getElementById("mp-cost").value;
+  const priceRaw  = document.getElementById("mp-price").value;
+  const cost      = parseFloat(costRaw);
+  const price     = parseFloat(priceRaw);
+  const stock     = parseInt(document.getElementById("mp-stock").value)     || 0;
+  const threshold = parseInt(document.getElementById("mp-threshold").value) || 10;
+  const unit      = document.getElementById("mp-unit").value;
+  const hasExpiry = document.getElementById("mp-has-expiry").checked;
+  const expiry    = hasExpiry ? document.getElementById("mp-expiry").value : null;
+
+  if (!name)              { notifyWarning("Product name is required"); return; }
+  if (!category)          { notifyWarning("Category is required"); return; }
+  if (isNaN(cost)  || cost  < 0) { notifyWarning("Enter a valid cost price"); return; }
+  if (isNaN(price) || price < 0) { notifyWarning("Enter a valid selling price"); return; }
+  if (price < cost)       { notifyWarning("Selling price cannot be below cost price"); return; }
+  if (hasExpiry && !expiry) { notifyWarning("Please enter the expiry date"); return; }
+
+  const body = {
+    name,
+    category,
+    unit,
+    cost_price:          cost,
+    selling_price:       price,
+    price,                        // backward compat
+    stock,
+    low_stock_threshold: threshold,
+    expiry_date:         expiry,
+    has_expiry:          hasExpiry,
+  };
+
+  try {
+    const result = await api("/inventory/", { method: "POST", body: JSON.stringify(body) });
+    closeModal();
+    const batchMsg = result?.batch_number ? ` · Batch: ${result.batch_number}` : "";
+    notifySuccess(`${name} added${batchMsg}`);
+    loadInventory();
+    loadProducts();
+  } catch(e) {
+    notifyError(e.message);
+  }
+}
+
+// ── REPORTS ────────────────────────────────────────────────────────────────
+let reportPeriod = "day";
+
+function setReportPeriod(p, el) {
+  reportPeriod = p;
+  document.querySelectorAll("#report-period-tabs .cat-tab").forEach(t => t.classList.remove("active"));
+  el.classList.add("active");
+  loadReports();
+}
+
+async function loadReports() {
+  const cashierUid = document.getElementById("report-cashier-filter")?.value || "";
+  const fmt = n => `KES ${Number(n || 0).toLocaleString()}`;
+
+  // Show loading state
+  ["r-revenue","r-profit","r-cogs"].forEach(id => document.getElementById(id).textContent = "…");
+
+  try {
+    let url = `/reports/summary?branch_id=${branchId}&period=${reportPeriod}`;
+    if (cashierUid) url += `&cashier_uid=${encodeURIComponent(cashierUid)}`;
+    const data = await api(url);
+    if (!data) return;
+
+    // ── Revenue / orders (always present) ─────────────────────────────────
+    document.getElementById("r-revenue").textContent    = fmt(data.total_revenue);
+    document.getElementById("r-orders-sub").textContent = `${data.total_orders || 0} orders`;
+    document.getElementById("r-avg").textContent        = `Avg ticket: ${fmt(data.avg_ticket)}`;
+
+    const pay = data.sales_by_payment || {};
+    document.getElementById("r-pay").innerHTML = Object.keys(pay).length
+      ? Object.entries(pay).map(([k,v]) =>
+          `<div style="font-size:11px;color:var(--muted)">${k}: <b style="color:var(--text);font-family:'DM Mono',monospace">${fmt(v)}</b></div>`
+        ).join("")
+      : `<div style="font-size:12px;color:var(--hint)">No sales yet</div>`;
+
+    // ── Profit: use backend value if present, otherwise compute from orders ─
+    const backendHasProfit = data.gross_profit != null && Number(data.gross_profit) > 0;
+
+    if (backendHasProfit) {
+      // Backend already computes profit — use it directly
+      document.getElementById("r-profit").textContent = fmt(data.gross_profit);
+      document.getElementById("r-margin").textContent = `${Number(data.profit_margin || 0).toFixed(1)}% margin`;
+      document.getElementById("r-cogs").textContent   = fmt(data.cost_total);
+      renderCashierTable(data.by_cashier || {}, fmt);
+      renderDailyTable(data.by_day || [], fmt);
+
+    } else {
+      // Backend not yet returning profit — compute from raw orders client-side
+      document.getElementById("r-profit").textContent = "Computing…";
+      document.getElementById("r-cogs").textContent   = "Computing…";
+
+      const ordersData = await api(`/sales/?branch_id=${branchId}&limit=500`);
+      const orders = ordersData?.orders || [];
+
+      // Filter by period
+      const now  = new Date();
+      const filtered = orders.filter(o => {
+        const ts = o.created_at?._seconds ? o.created_at._seconds * 1000
+                 : o.created_at ? new Date(o.created_at).getTime() : 0;
+        if (!ts) return false;
+        const d = new Date(ts);
+        if (reportPeriod === "day")   return d.toDateString() === now.toDateString();
+        if (reportPeriod === "week")  { const wk = new Date(now); wk.setDate(now.getDate()-6); return d >= wk; }
+        if (reportPeriod === "month") return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+        return true; // "all"
+      }).filter(o => !cashierUid || o.cashier_uid === cashierUid);
+
+      // Aggregate profit from items
+      let totalProfit = 0, totalCogs = 0;
+      const cashierMap = {}, dailyMap = {};
+
+      filtered.forEach(o => {
+        const ts = o.created_at?._seconds ? o.created_at._seconds*1000 : new Date(o.created_at).getTime();
+        const dateKey = new Date(ts).toISOString().split("T")[0];
+        const items = o.items || [];
+
+        let orderProfit = 0, orderCogs = 0;
+        items.forEach(item => {
+          const up = Number(item.unit_price || item.price || 0);
+          const cp = Number(item.cost_price || item.costPrice || 0);
+          const qty = Number(item.qty || item.quantity || 1);
+          const profit = (up - cp) * qty;
+          const cogs   = cp * qty;
+          orderProfit += profit;
+          orderCogs   += cogs;
+        });
+
+        // Fallback: if no cost data in items, profit stays 0 (can't compute without cost)
+        totalProfit += orderProfit;
+        totalCogs   += orderCogs;
+
+        // By cashier
+        const cuid = o.cashier_uid || o.cashier_id || o.uid || "unknown";
+        const cname = o.cashier_name || "Unknown";
+        if (!cashierMap[cuid]) cashierMap[cuid] = { name: cname, orders:0, revenue:0, gross_profit:0 };
+        cashierMap[cuid].orders++;
+        cashierMap[cuid].revenue      += Number(o.total || 0);
+        cashierMap[cuid].gross_profit += orderProfit;
+
+        // By day
+        if (!dailyMap[dateKey]) dailyMap[dateKey] = { date:dateKey, orders:0, revenue:0, gross_profit:0 };
+        dailyMap[dateKey].orders++;
+        dailyMap[dateKey].revenue      += Number(o.total || 0);
+        dailyMap[dateKey].gross_profit += orderProfit;
+      });
+
+      const revenue = Number(data.total_revenue || 0);
+      const margin  = revenue > 0 ? (totalProfit / revenue * 100).toFixed(1) : "0.0";
+
+      // Check if we actually had cost data to compute from
+      const hasCostData = totalProfit !== 0 || totalCogs !== 0;
+
+      document.getElementById("r-profit").textContent = hasCostData
+        ? fmt(totalProfit)
+        : `KES 0 ⚠`;
+      document.getElementById("r-margin").textContent = hasCostData
+        ? `${margin}% margin`
+        : `Set cost prices to see margin`;
+      document.getElementById("r-cogs").textContent   = hasCostData
+        ? fmt(totalCogs)
+        : `KES 0`;
+
+      if (!hasCostData) {
+        // Show a hint in the cashier table
+        document.getElementById("r-cashier-tbody").innerHTML =
+          `<tr><td colspan="5" style="text-align:center;padding:20px">
+            <div style="color:var(--amber);font-size:12px;margin-bottom:6px">⚠ Cost prices not set on existing products</div>
+            <div style="color:var(--muted);font-size:11px">Go to Inventory → click ✎ to set cost price per product.<br>New orders will then calculate profit automatically.</div>
+          </td></tr>`;
+        document.getElementById("r-daily-tbody").innerHTML =
+          `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;font-size:12px">
+            Set cost prices on products to see daily profit breakdown
+          </td></tr>`;
+      } else {
+        renderCashierTable(cashierMap, fmt);
+        renderDailyTable(Object.values(dailyMap), fmt);
+      }
+
+      // Populate cashier dropdown from computed data
+      const sel = document.getElementById("report-cashier-filter");
+      if (sel && sel.options.length === 1 && Object.keys(cashierMap).length) {
+        Object.entries(cashierMap).forEach(([uid, c]) => {
+          if (!sel.querySelector(`option[value="${uid}"]`)) {
+            const opt = document.createElement("option");
+            opt.value = uid; opt.textContent = c.name;
+            sel.appendChild(opt);
+          }
+        });
+      }
+    }
+
+    // Cashier dropdown from backend data
+    if (backendHasProfit) {
+      const cashiers = data.by_cashier || {};
+      const sel = document.getElementById("report-cashier-filter");
+      if (sel && sel.options.length === 1 && Object.keys(cashiers).length) {
+        Object.entries(cashiers).forEach(([uid, c]) => {
+          const opt = document.createElement("option");
+          opt.value = uid; opt.textContent = c.name;
+          sel.appendChild(opt);
+        });
+      }
+    }
+
+  } catch(e) {
+    notifyError(e.message);
+    document.getElementById("r-revenue").textContent = "Error";
+    document.getElementById("r-cashier-tbody").innerHTML = `<tr><td colspan="5" style="color:var(--red);padding:16px">Error: ${e.message}</td></tr>`;
+    document.getElementById("r-daily-tbody").innerHTML   = `<tr><td colspan="4" style="color:var(--red);padding:16px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+function renderCashierTable(cashierMap, fmt) {
+  const cashierRows = Object.entries(cashierMap);
+  document.getElementById("r-cashier-tbody").innerHTML = cashierRows.length
+    ? cashierRows
+        .sort((a,b) => (b[1].gross_profit||0) - (a[1].gross_profit||0))
+        .map(([uid, c]) => {
+          const margin  = c.revenue ? ((c.gross_profit/c.revenue)*100).toFixed(1) : "0.0";
+          const mCls    = parseFloat(margin) >= 40 ? "badge-green" : parseFloat(margin) >= 20 ? "badge-amber" : "badge-red";
+          const initials = (c.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+          return `<tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:26px;height:26px;border-radius:6px;background:var(--accent2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;flex-shrink:0">${initials}</div>
+                <span style="font-size:12px;font-weight:500">${c.name||"Unknown"}</span>
+              </div>
+            </td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px">${c.orders||0}</td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px">${fmt(c.revenue)}</td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--green)">${fmt(c.gross_profit)}</td>
+            <td><span class="badge ${mCls}">${margin}%</span></td>
+          </tr>`;
+        }).join("")
+    : `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No cashier data</td></tr>`;
+}
+
+function renderDailyTable(daily, fmt) {
+  const rows = Array.isArray(daily) ? daily : Object.values(daily);
+  document.getElementById("r-daily-tbody").innerHTML = rows.length
+    ? [...rows]
+        .sort((a,b) => (b.date||"").localeCompare(a.date||""))
+        .map(d => `<tr>
+          <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${d.date}</td>
+          <td style="font-family:'DM Mono',monospace;font-size:12px">${d.orders||0}</td>
+          <td style="font-family:'DM Mono',monospace;font-size:12px">${fmt(d.revenue)}</td>
+          <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--green)">${fmt(d.gross_profit)}</td>
+        </tr>`).join("")
+    : `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No daily data yet</td></tr>`;
+}
+
+// ── USERS ──────────────────────────────────────────────────────────────────
+async function loadUsers() {
+  try {
+    const data = await api("/users/");
+    if (!data) return;
+    document.getElementById("users-tbody").innerHTML = data.users.length ? data.users.map(u => `
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:10px">
+          <div style="width:30px;height:30px;border-radius:7px;background:var(--accent2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff">${u.name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}</div>
+          <div><div style="font-weight:500">${u.name}</div><div style="font-size:11px;color:var(--muted)">${u.email}</div></div>
+        </div></td>
+        <td><span class="badge ${u.role==="super_admin"?"badge-purple":u.role==="supervisor"?"badge-blue":"badge-green"}">${u.role.replace(/_/g," ")}</span></td>
+        <td style="color:var(--muted)">${u.branch_id}</td>
+        <td><span class="badge ${u.status==="active"?"badge-green":"badge-red"}">${u.status}</span></td>
+        <td style="color:var(--muted);font-size:12px">${u.last_login ? new Date(u.last_login._seconds*1000).toLocaleDateString() : "Never"}</td>
+        <td>
+          <button class="btn ${u.status==="active"?"btn-danger":""}" style="padding:4px 10px;font-size:11px"
+            onclick="toggleUser('${u.uid}','${u.status}')">${u.status==="active"?"Deactivate":"Activate"}</button>
+        </td>
+      </tr>`).join("")
+    : `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">No users found</td></tr>`;
+  } catch(e) {
+    document.getElementById("users-tbody").innerHTML = `<tr><td colspan="6" style="color:var(--red);padding:16px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+async function toggleUser(uid, currentStatus) {
+  const action = currentStatus === "active" ? "deactivate" : "activate";
+  try {
+    await api(`/users/${uid}/status?action=${action}`, { method: "PATCH" });
+    notifySuccess(`User ${action}d successfully`); loadUsers();
+  } catch(e) { notifyError(e.message); }
+}
+
+function openAddUser() {
+  showModal(`
+    <div class="modal-title">Add New User</div>
+    <div class="modal-field"><label>Full Name</label><input type="text" id="mu-name" placeholder="e.g. Mary Wanjiku"></div>
+    <div class="modal-field"><label>Email</label><input type="email" id="mu-email" placeholder="user@company.co.ke"></div>
+    <div class="modal-field"><label>Password</label><input type="password" id="mu-pwd" placeholder="Min 8 characters"></div>
+    <div class="modal-field"><label>Role</label>
+      <select id="mu-role">
+        <option value="cashier">Cashier</option>
+        <option value="supervisor">Supervisor</option>
+        <option value="branch_manager">Branch Manager</option>
+        <option value="super_admin">Super Admin</option>
+      </select>
+    </div>
+    <div class="modal-field"><label>Branch ID</label><input type="text" id="mu-branch" value="${branchId}" placeholder="branch-westlands"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddUser()">Create User</button>
+    </div>`);
+}
+
+async function submitAddUser() {
+  const body = {
+    name:      document.getElementById("mu-name").value.trim(),
+    email:     document.getElementById("mu-email").value.trim(),
+    password:  document.getElementById("mu-pwd").value,
+    role:      document.getElementById("mu-role").value,
+    branch_id: document.getElementById("mu-branch").value.trim(),
+  };
+  if (!body.name || !body.email || !body.password) { notifyWarning("Please fill in all required fields"); return; }
+  try {
+    await api("/users/", { method: "POST", body: JSON.stringify(body) });
+    closeModal(); notifySuccess("User created successfully"); loadUsers();
+  } catch(e) { notifyError(e.message); }
+}
+
+// ── SESSIONS ───────────────────────────────────────────────────────────────
+async function loadSessions() {
+  try {
+    const data = await api("/sessions/");
+    if (!data) return;
+    document.getElementById("sessions-tbody").innerHTML = data.sessions.length ? data.sessions.map(s => {
+      const login  = s.login_at?._seconds  ? new Date(s.login_at._seconds*1000).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}) : "—";
+      const logout = s.logout_at?._seconds ? new Date(s.logout_at._seconds*1000).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}) : "—";
+      const dur    = s.duration_seconds    ? `${Math.floor(s.duration_seconds/3600)}h ${Math.floor((s.duration_seconds%3600)/60)}m` : (s.is_active ? "Active" : "—");
+      return `<tr>
+        <td style="font-weight:500">${s.user_name}</td>
+        <td style="color:var(--muted)">${s.branch_name}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${login}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${logout}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${dur}</td>
+        <td style="font-weight:500;color:var(--accent);font-family:'DM Mono',monospace">${s.sales_count || 0}</td>
+        <td>${s.is_active ? `<span class="badge badge-green"><span class="session-dot"></span>Active</span>` : `<span class="badge badge-amber">Ended</span>`}</td>
+      </tr>`;
+    }).join("")
+    : `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">No sessions yet</td></tr>`;
+  } catch(e) {
+    document.getElementById("sessions-tbody").innerHTML = `<tr><td colspan="7" style="color:var(--red);padding:16px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+// ── NOTIFICATION SYSTEM ────────────────────────────────────────────────────
+const NOTIF_CONFIG = {
+  success: { icon: "✓", title: "Success"     },
+  error:   { icon: "✕", title: "Error"       },
+  warning: { icon: "⚠", title: "Warning"     },
+  info:    { icon: "i", title: "Info"         },
+};
+
+// Maps raw Firebase / API error strings → clean human messages
+function friendlyError(raw) {
+  const s = (raw || "").toLowerCase();
+  if (s.includes("auth/user-disabled"))           return "This account has been deactivated. Please contact your administrator.";
+  if (s.includes("auth/user-not-found"))          return "No account found with that email address.";
+  if (s.includes("auth/wrong-password"))          return "Incorrect password. Please try again.";
+  if (s.includes("auth/invalid-credential"))      return "Invalid email or password.";
+  if (s.includes("auth/invalid-email"))           return "Please enter a valid email address.";
+  if (s.includes("auth/email-already-in-use"))    return "An account with this email already exists.";
+  if (s.includes("auth/weak-password"))           return "Password must be at least 6 characters.";
+  if (s.includes("auth/too-many-requests"))       return "Too many failed attempts. Please wait a moment and try again.";
+  if (s.includes("auth/network-request-failed"))  return "Network error. Check your connection and try again.";
+  if (s.includes("auth/requires-recent-login"))   return "Please log out and log back in to continue.";
+  if (s.includes("permission-denied"))            return "You don't have permission to perform this action.";
+  if (s.includes("not-found") || s.includes("404")) return "The requested resource was not found.";
+  if (s.includes("already-exists") || s.includes("409")) return "A record with this information already exists.";
+  if (s.includes("unauthenticated") || s.includes("401")) return "Your session has expired. Please log in again.";
+  if (s.includes("unavailable") || s.includes("503")) return "Service temporarily unavailable. Please try again shortly.";
+  if (s.includes("deadline-exceeded") || s.includes("timeout")) return "The request timed out. Please try again.";
+  if (s.includes("http 500"))                     return "A server error occurred. Please try again later.";
+  if (s.includes("fill in all"))                  return raw; // validation messages pass through as-is
+  if (s.includes("required"))                     return raw;
+  if (s.includes("valid"))                        return raw;
+  if (s.includes("cannot be below"))              return raw;
+  // Strip "Firebase: " prefix and auth code suffix e.g. " (auth/something)."
+  return raw.replace(/^firebase:\s*/i, "").replace(/\s*\(auth\/[^)]+\)\.?/i, "").trim() || "Something went wrong. Please try again.";
+}
+
+function notify(message, type = "info", duration = 4000) {
+  const cfg   = NOTIF_CONFIG[type] || NOTIF_CONFIG.info;
+  const stack = document.getElementById("notif-stack");
+  const el    = document.createElement("div");
+  el.className = `notif notif-${type}`;
+  el.style.position = "relative";
+  el.style.overflow = "hidden";
+  el.innerHTML = `
+    <div class="notif-icon">${cfg.icon}</div>
+    <div class="notif-body">
+      <div class="notif-title">${cfg.title}</div>
+      <div class="notif-msg">${message}</div>
+    </div>
+    <div class="notif-close" onclick="dismissNotif(this.parentElement)">✕</div>
+    <div class="notif-progress" style="animation-duration:${duration}ms"></div>`;
+  stack.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("show")));
+  setTimeout(() => dismissNotif(el), duration);
+}
+
+function dismissNotif(el) {
+  if (!el || el._dismissing) return;
+  el._dismissing = true;
+  el.classList.add("hide");
+  el.classList.remove("show");
+  setTimeout(() => el.remove(), 300);
+}
+
+// Convenience wrappers
+function showToast(raw, type) {
+  // Auto-detect type from legacy emoji prefix if no type given
+  if (!type) {
+    if (raw.startsWith("✓") || raw.startsWith("✅")) type = "success";
+    else if (raw.startsWith("❌") || raw.startsWith("⚠")) type = "error";
+    else type = "info";
+  }
+  const clean = raw.replace(/^[✓✅❌⚠️⚠]\s*/, "");
+  notify(friendlyError(clean), type);
+}
+
+function notifySuccess(msg) { notify(msg, "success"); }
+function notifyError(raw)   { notify(friendlyError(raw), "error"); }
+function notifyWarning(msg) { notify(msg, "warning"); }
+function notifyInfo(msg)    { notify(msg, "info"); }
+
+// ── MODAL ──────────────────────────────────────────────────────────────────
+function showModal(html) {
+  document.getElementById("modal-box").innerHTML = html;
+  document.getElementById("modal-overlay").classList.add("show");
+}
+function closeModal() {
+  document.getElementById("modal-overlay").classList.remove("show");
+}
+document.getElementById("modal-overlay").addEventListener("click", e => {
+  if (e.target === document.getElementById("modal-overlay")) closeModal();
+});
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+loadProducts();
+</script>
+</body>
+</html>

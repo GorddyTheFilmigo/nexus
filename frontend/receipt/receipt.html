@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Nexus POS — Receipt</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
+
+  /* ── SCREEN WRAPPER ─────────────────────────────────────────────────── */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #1a1f2e;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    gap: 20px;
+  }
+
+  .screen-header {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .screen-header h2 { color: #e4e8f4; font-size: 16px; font-weight: 500; }
+  .screen-actions { display: flex; gap: 8px; }
+  .action-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #2c3a5c;
+    background: #10141c;
+    color: #6b7799;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all .15s;
+  }
+  .action-btn:hover { border-color: #4f8ef7; color: #4f8ef7; }
+  .action-btn.primary { background: #4f8ef7; border-color: #4f8ef7; color: #fff; }
+  .action-btn.primary:hover { background: #3569c4; }
+
+  /* ── RECEIPT PAPER ──────────────────────────────────────────────────── */
+  /* 80mm thermal = ~302px usable print width                              */
+  .receipt-wrap {
+    background: #f0ede7;
+    width: 302px;
+    box-shadow: 0 4px 32px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.05);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Torn edge top */
+  .receipt-wrap::before {
+    content: '';
+    display: block;
+    height: 12px;
+    background: repeating-linear-gradient(
+      90deg,
+      #1a1f2e 0px, #1a1f2e 6px,
+      #f0ede7 6px, #f0ede7 12px
+    );
+  }
+  /* Torn edge bottom */
+  .receipt-wrap::after {
+    content: '';
+    display: block;
+    height: 12px;
+    background: repeating-linear-gradient(
+      90deg,
+      #1a1f2e 0px, #1a1f2e 6px,
+      #f0ede7 6px, #f0ede7 12px
+    );
+  }
+
+  /* ── RECEIPT CONTENT ─────────────────────────────────────────────────── */
+  .receipt {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #1a1a1a;
+    padding: 14px 16px;
+    background: #f0ede7;
+  }
+
+  .r-center  { text-align: center; }
+  .r-right   { text-align: right; }
+  .r-bold    { font-weight: 500; }
+  .r-sm      { font-size: 10px; color: #555; }
+  .r-lg      { font-size: 13px; font-weight: 500; }
+  .r-xl      { font-size: 16px; font-weight: 500; }
+
+  /* Logo / Header */
+  .r-logo {
+    font-size: 18px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    letter-spacing: -0.5px;
+    margin-bottom: 2px;
+  }
+
+  /* Dividers */
+  .r-dashes  { border: none; border-top: 1px dashed #999; margin: 8px 0; }
+  .r-solid   { border: none; border-top: 1px solid #666; margin: 8px 0; }
+  .r-thick   { border: none; border-top: 2px solid #1a1a1a; margin: 10px 0; }
+
+  /* Line items */
+  .r-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3px;
+  }
+  .r-row .r-name { flex: 1; padding-right: 8px; }
+  .r-row .r-qty  { width: 26px; text-align: right; }
+  .r-row .r-amt  { width: 60px; text-align: right; }
+
+  /* Totals */
+  .r-total-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3px;
+  }
+  .r-total-row.grand {
+    font-size: 14px;
+    font-weight: 500;
+    margin-top: 4px;
+    margin-bottom: 4px;
+  }
+
+  /* Barcode placeholder (visual) */
+  .r-barcode {
+    display: flex;
+    justify-content: center;
+    gap: 1.5px;
+    margin: 10px auto 4px;
+    height: 32px;
+    align-items: flex-end;
+  }
+  .r-barcode span {
+    display: inline-block;
+    background: #1a1a1a;
+    border-radius: 0.5px;
+  }
+
+  /* Change display */
+  .r-change-box {
+    background: #e0ddd7;
+    border: 1px dashed #aaa;
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin: 8px 0;
+    text-align: center;
+  }
+
+  /* QR placeholder */
+  .r-qr {
+    width: 64px; height: 64px;
+    margin: 8px auto;
+    display: grid;
+    grid-template-columns: repeat(7,1fr);
+    gap: 1px;
+  }
+  .r-qr-cell { border-radius: 1px; }
+
+  /* ── PRINT STYLES ────────────────────────────────────────────────────── */
+  @media print {
+    body { background: white; padding: 0; margin: 0; }
+    .screen-header, .screen-actions, .action-btn { display: none !important; }
+    .receipt-wrap { box-shadow: none; width: 100%; border-radius: 0; }
+    .receipt-wrap::before, .receipt-wrap::after { display: none; }
+    .receipt { padding: 0 4mm; }
+    @page { margin: 4mm; size: 80mm auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SCREEN-ONLY CONTROLS -->
+<div class="screen-header">
+  <h2>Receipt Preview — ORD-A3F8C2D1</h2>
+  <div class="screen-actions">
+    <button class="action-btn" onclick="window.print()">🖨 Print (Thermal)</button>
+    <button class="action-btn primary" onclick="generatePDF()">⬇ Save PDF</button>
+  </div>
+</div>
+
+<!-- RECEIPT PAPER -->
+<div class="receipt-wrap" id="receipt">
+<div class="receipt">
+
+  <!-- HEADER -->
+  <div class="r-center">
+    <div class="r-logo">NEXUS POS</div>
+    <div class="r-sm">Nairobi Retail Ltd</div>
+    <div class="r-sm">Westlands Branch, Nairobi</div>
+    <div class="r-sm">Tel: +254 700 000 000</div>
+    <div class="r-sm">KRA PIN: P000000000A</div>
+  </div>
+
+  <hr class="r-thick">
+
+  <!-- ORDER META -->
+  <div class="r-row">
+    <span class="r-sm">Order #</span>
+    <span class="r-sm r-bold">ORD-A3F8C2D1</span>
+  </div>
+  <div class="r-row">
+    <span class="r-sm">Date</span>
+    <span class="r-sm" id="receipt-date"></span>
+  </div>
+  <div class="r-row">
+    <span class="r-sm">Cashier</span>
+    <span class="r-sm">Jane Kamau</span>
+  </div>
+  <div class="r-row">
+    <span class="r-sm">Payment</span>
+    <span class="r-sm r-bold" style="color:#1a1a1a">M-PESA ✓</span>
+  </div>
+
+  <hr class="r-dashes">
+
+  <!-- ITEMS HEADER -->
+  <div class="r-row r-sm" style="color:#555">
+    <span class="r-name">ITEM</span>
+    <span class="r-qty">QTY</span>
+    <span class="r-amt">AMOUNT</span>
+  </div>
+  <hr class="r-dashes">
+
+  <!-- LINE ITEMS -->
+  <div id="line-items"></div>
+
+  <hr class="r-solid">
+
+  <!-- TOTALS -->
+  <div class="r-total-row">
+    <span class="r-sm">Subtotal</span>
+    <span class="r-sm" id="t-sub"></span>
+  </div>
+  <div class="r-total-row">
+    <span class="r-sm">VAT (16%)</span>
+    <span class="r-sm" id="t-tax"></span>
+  </div>
+  <div class="r-total-row">
+    <span class="r-sm">Discount</span>
+    <span class="r-sm" id="t-disc" style="color:#555"></span>
+  </div>
+  <hr class="r-solid">
+  <div class="r-total-row grand">
+    <span>TOTAL</span>
+    <span id="t-total"></span>
+  </div>
+
+  <!-- CHANGE -->
+  <div class="r-change-box">
+    <div class="r-sm">Amount Paid (M-Pesa)</div>
+    <div class="r-bold" id="t-paid"></div>
+    <div class="r-sm" style="margin-top:2px">Change</div>
+    <div class="r-bold" id="t-change">KES 0.00</div>
+  </div>
+
+  <hr class="r-dashes">
+
+  <!-- BARCODE -->
+  <div class="r-barcode" id="barcode"></div>
+  <div class="r-center r-sm" style="letter-spacing:2px;font-size:9px">ORD-A3F8C2D1</div>
+
+  <hr class="r-dashes">
+
+  <!-- FOOTER -->
+  <div class="r-center">
+    <div class="r-sm">Thank you for shopping with us!</div>
+    <div class="r-sm" style="margin-top:3px">Returns accepted within 7 days</div>
+    <div class="r-sm" style="margin-top:3px">with original receipt.</div>
+    <div style="margin-top:8px;font-size:9px;color:#888">Powered by Nexus POS · nexuspos.co.ke</div>
+  </div>
+
+</div>
+</div>
+
+<!-- SECOND RECEIPT DEMO: Different template -->
+<div class="screen-header" style="margin-top:24px">
+  <h2>Compact Format — 58mm</h2>
+  <div class="screen-actions">
+    <button class="action-btn" onclick="window.print()">🖨 Print</button>
+  </div>
+</div>
+
+<div class="receipt-wrap" style="width:218px">
+<div class="receipt" style="font-size:10px;padding:10px 12px">
+  <div class="r-center r-bold" style="font-size:13px">NEXUS POS</div>
+  <div class="r-center r-sm">Westlands · +254 700 000 000</div>
+  <hr class="r-dashes">
+  <div class="r-sm">ORD-A3F8C2D1 · Jane K.</div>
+  <div class="r-sm" id="date-58"></div>
+  <hr class="r-dashes">
+  <div id="items-58"></div>
+  <hr class="r-solid">
+  <div class="r-total-row" style="font-size:13px;font-weight:500"><span>TOTAL</span><span id="t-total-58"></span></div>
+  <div class="r-total-row r-sm"><span>M-Pesa</span><span>PAID ✓</span></div>
+  <hr class="r-dashes">
+  <div class="r-center r-sm">Asante sana! Thank you!</div>
+  <div class="r-center" style="font-size:9px;color:#888;margin-top:3px">nexuspos.co.ke</div>
+</div>
+</div>
+
+<script>
+// ─── SAMPLE ORDER DATA ─────────────────────────────────────────────────────
+// In production this comes from the API: GET /api/v1/sales/{orderId}
+const ORDER = {
+  order_id:       "ORD-A3F8C2D1",
+  cashier:        "Jane Kamau",
+  payment_method: "mpesa",
+  items: [
+    { name: "Coca Cola 500ml",  qty: 3, unit_price: 80  },
+    { name: "Bread Loaf",       qty: 2, unit_price: 65  },
+    { name: "Milk 500ml",       qty: 4, unit_price: 55  },
+    { name: "Eggs Tray 30",     qty: 1, unit_price: 480 },
+    { name: "Unga Pembe 2kg",   qty: 1, unit_price: 185 },
+  ],
+  discount: 50,
+  amount_paid: 1500,
+};
+
+// ─── CALCULATIONS ─────────────────────────────────────────────────────────
+const subtotal = ORDER.items.reduce((s, i) => s + i.unit_price * i.qty, 0);
+const tax      = Math.round(subtotal * 0.16);
+const total    = subtotal + tax - ORDER.discount;
+const change   = ORDER.amount_paid - total;
+
+function fmt(n) { return `KES ${n.toLocaleString("en-KE", { minimumFractionDigits: 2 })}`; }
+
+// ─── RENDER LINE ITEMS ─────────────────────────────────────────────────────
+document.getElementById("line-items").innerHTML = ORDER.items.map(i => `
+  <div class="r-row">
+    <span class="r-name">${i.name}</span>
+    <span class="r-qty">${i.qty}</span>
+    <span class="r-amt">${fmt(i.unit_price * i.qty)}</span>
+  </div>
+  <div class="r-row r-sm" style="color:#888;margin-bottom:4px;margin-top:-2px">
+    <span class="r-name">${fmt(i.unit_price)} × ${i.qty}</span>
+    <span></span><span></span>
+  </div>`).join("");
+
+// ─── TOTALS ───────────────────────────────────────────────────────────────
+document.getElementById("t-sub").textContent  = fmt(subtotal);
+document.getElementById("t-tax").textContent  = fmt(tax);
+document.getElementById("t-disc").textContent = `- ${fmt(ORDER.discount)}`;
+document.getElementById("t-total").textContent = fmt(total);
+document.getElementById("t-paid").textContent  = fmt(ORDER.amount_paid);
+document.getElementById("t-change").textContent = fmt(Math.max(change, 0));
+
+// ─── DATE ─────────────────────────────────────────────────────────────────
+const now = new Date();
+const dateStr = now.toLocaleString("en-KE", {
+  day:"2-digit", month:"short", year:"numeric",
+  hour:"2-digit", minute:"2-digit"
+});
+document.getElementById("receipt-date").textContent = dateStr;
+document.getElementById("date-58").textContent = dateStr;
+
+// ─── BARCODE (visual bars) ────────────────────────────────────────────────
+const bc = document.getElementById("barcode");
+const pattern = [3,1,2,1,3,2,1,1,2,3,1,2,1,3,2,1,3,1,2,1,1,3,2,1,3,2,1,1];
+bc.innerHTML = pattern.map(w =>
+  `<span style="width:${w}px;height:${24 + Math.random()*8}px"></span>`
+).join("");
+
+// ─── 58mm COMPACT ─────────────────────────────────────────────────────────
+document.getElementById("items-58").innerHTML = ORDER.items.map(i =>
+  `<div class="r-row"><span>${i.name} x${i.qty}</span><span>${fmt(i.unit_price * i.qty)}</span></div>`
+).join("");
+document.getElementById("t-total-58").textContent = fmt(total);
+
+// ─── PDF DOWNLOAD ─────────────────────────────────────────────────────────
+function generatePDF() {
+  // In production, call: POST /api/v1/sales/{orderId}/receipt?format=pdf
+  // or use browser print with @media print styles
+  window.print();
+}
+</script>
+</body>
+</html>

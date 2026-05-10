@@ -1,0 +1,194 @@
+{
+  "_comment": "NEXUS POS — Firestore Collection Schema & Index Definitions",
+
+  "collections": {
+
+    "tenants/{tenantId}": {
+      "_description": "Top-level tenant (business) document",
+      "fields": {
+        "tenant_id":    "string — matches document ID",
+        "name":         "string — business name, e.g. 'Nairobi Retail Ltd'",
+        "plan":         "string — 'starter' | 'growth' | 'enterprise'",
+        "country":      "string — ISO 3166, e.g. 'KE'",
+        "currency":     "string — e.g. 'KES'",
+        "tax_rate":     "number — e.g. 0.16",
+        "timezone":     "string — e.g. 'Africa/Nairobi'",
+        "created_at":   "timestamp",
+        "is_active":    "boolean"
+      },
+      "subcollections": {
+        "branches/{branchId}": {
+          "fields": {
+            "branch_id":  "string",
+            "name":       "string — e.g. 'Westlands Branch'",
+            "address":    "string",
+            "phone":      "string",
+            "manager_id": "string — uid of branch manager",
+            "is_active":  "boolean",
+            "created_at": "timestamp"
+          },
+          "subcollections": {
+            "products/{productId}": {
+              "fields": {
+                "product_id":           "string",
+                "name":                 "string",
+                "category":             "string",
+                "price":                "number",
+                "stock":                "number — integer, decremented on each sale",
+                "sku":                  "string | null",
+                "barcode":              "string | null",
+                "low_stock_threshold":  "number — default 10",
+                "unit":                 "string — e.g. 'piece', 'kg', 'litre'",
+                "tenant_id":            "string",
+                "branch_id":            "string",
+                "created_at":           "timestamp",
+                "updated_at":           "timestamp",
+                "created_by":           "string — uid"
+              }
+            },
+            "orders/{orderId}": {
+              "fields": {
+                "order_id":       "string — e.g. 'ORD-A1B2C3D4'",
+                "tenant_id":      "string",
+                "branch_id":      "string",
+                "cashier_id":     "string — uid",
+                "cashier_name":   "string",
+                "items": [{
+                  "product_id":   "string",
+                  "name":         "string",
+                  "qty":          "number",
+                  "unit_price":   "number"
+                }],
+                "subtotal":       "number",
+                "tax":            "number",
+                "discount":       "number",
+                "total":          "number",
+                "payment_method": "string — 'cash' | 'mpesa' | 'card'",
+                "status":         "string — 'completed' | 'refunded' | 'voided'",
+                "customer_name":  "string | null",
+                "customer_phone": "string | null",
+                "notes":          "string | null",
+                "created_at":     "timestamp",
+                "updated_at":     "timestamp",
+                "refunded_by":    "string | null — uid",
+                "refunded_at":    "timestamp | null",
+                "refund_reason":  "string | null",
+                "voided_by":      "string | null",
+                "voided_at":      "timestamp | null",
+                "void_reason":    "string | null"
+              }
+            },
+            "cash_drawers/{drawerId}": {
+              "fields": {
+                "drawer_id":       "string",
+                "opened_by":       "string — uid",
+                "opened_at":       "timestamp",
+                "opening_float":   "number — cash in drawer at start",
+                "closed_by":       "string | null — uid",
+                "closed_at":       "timestamp | null",
+                "closing_cash":    "number | null — physical count at close",
+                "expected_cash":   "number | null — computed from sales",
+                "variance":        "number | null — closing_cash - expected_cash",
+                "status":          "string — 'open' | 'closed'"
+              }
+            }
+          }
+        },
+        "settings/{doc}": {
+          "fields": {
+            "receipt_header":  "string — appears at top of receipts",
+            "receipt_footer":  "string — e.g. 'Thank you for shopping!'",
+            "tax_pin":         "string — KRA PIN for tax receipts",
+            "logo_url":        "string | null",
+            "printer_type":    "string — 'thermal_80mm' | 'thermal_58mm' | 'pdf'"
+          }
+        }
+      }
+    },
+
+    "users/{uid}": {
+      "_description": "User profile — uid matches Firebase Auth uid",
+      "fields": {
+        "name":              "string",
+        "email":             "string",
+        "role":              "string — 'cashier' | 'supervisor' | 'branch_manager' | 'super_admin'",
+        "branch_id":         "string",
+        "tenant_id":         "string",
+        "status":            "string — 'active' | 'inactive'",
+        "created_at":        "timestamp",
+        "created_by":        "string — uid of creator",
+        "last_login":        "timestamp | null",
+        "active_session_id": "string | null"
+      }
+    },
+
+    "sessions/{sessionId}": {
+      "_description": "Login/logout tracking. Created on login, updated on logout.",
+      "fields": {
+        "session_id":       "string",
+        "uid":              "string — Firebase Auth uid",
+        "user_name":        "string",
+        "tenant_id":        "string",
+        "branch_id":        "string",
+        "branch_name":      "string",
+        "role":             "string",
+        "login_at":         "timestamp",
+        "logout_at":        "timestamp | null",
+        "duration_seconds": "number | null",
+        "sales_count":      "number — incremented per sale",
+        "sales_total":      "number — sum of sales during session",
+        "is_active":        "boolean",
+        "force_logout_by":  "string | null — uid of admin who force-ended session",
+        "ip":               "string"
+      }
+    },
+
+    "orders/{orderId}": {
+      "_description": "Global mirror of all orders across branches — for cross-branch reporting. Same fields as branch orders subcollection."
+    },
+
+    "audit_logs/{logId}": {
+      "_description": "Tamper-evident log of every mutating API action",
+      "fields": {
+        "uid":        "string",
+        "tenant_id":  "string",
+        "branch_id":  "string",
+        "role":       "string",
+        "method":     "string — HTTP method",
+        "path":       "string — API path",
+        "status":     "number — HTTP status code",
+        "ip":         "string",
+        "user_agent": "string",
+        "timestamp":  "timestamp"
+      }
+    }
+  },
+
+  "composite_indexes": [
+    {
+      "collection": "orders",
+      "fields": ["tenant_id ASC", "branch_id ASC", "created_at DESC"],
+      "purpose": "Branch order history, sorted by date"
+    },
+    {
+      "collection": "orders",
+      "fields": ["tenant_id ASC", "status ASC", "created_at DESC"],
+      "purpose": "Filter by status across branches"
+    },
+    {
+      "collection": "sessions",
+      "fields": ["branch_id ASC", "is_active ASC", "login_at DESC"],
+      "purpose": "Active sessions per branch"
+    },
+    {
+      "collection": "sessions",
+      "fields": ["uid ASC", "login_at DESC"],
+      "purpose": "Session history per user"
+    },
+    {
+      "collection": "audit_logs",
+      "fields": ["tenant_id ASC", "timestamp DESC"],
+      "purpose": "Audit trail by tenant"
+    }
+  ]
+}
