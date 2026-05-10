@@ -1,11 +1,180 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Nexus POS</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus POS — Login</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#080b10;--surface:#10141c;--surface2:#181e2a;--surface3:#1e2530;
+    --border:#1f2840;--border2:#2c3a5c;
+    --text:#e4e8f4;--muted:#6b7799;--hint:#3a4568;
+    --accent:#4f8ef7;--accent2:#3569c4;
+    --green:#3ecf8e;
+  }
+  html,body{
+    min-height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);
+    display:flex;align-items:center;justify-content:center;
+  }
+  body::before{
+    content:'';position:fixed;inset:0;
+    background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+    background-size:48px 48px;opacity:.3;pointer-events:none;z-index:0;
+  }
+  .glow{position:fixed;top:-300px;left:50%;transform:translateX(-50%);width:1000px;height:800px;
+    background:radial-gradient(ellipse,rgba(79,142,247,.08) 0%,transparent 70%);pointer-events:none;z-index:0}
+
+  .login-card{
+    width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border2);
+    border-radius:20px;padding:40px 32px;position:relative;overflow:hidden;z-index:1;
+  }
+  .login-card::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(79,142,247,.6),transparent);
+  }
+
+  .logo{
+    display:flex;align-items:center;gap:12px;margin-bottom:24px;
+  }
+  .logo-icon{
+    width:48px;height:48px;background:var(--accent);border-radius:12px;
+    display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;
+    font-size:18px;font-weight:700;color:#fff;
+  }
+  .logo-text{font-size:22px;font-weight:600;letter-spacing:-.5px}
+
+  .welcome{font-size:24px;font-weight:600;margin-bottom:8px;letter-spacing:-.4px}
+  .subtitle{font-size:14px;color:var(--muted);margin-bottom:32px}
+
+  .branch-selector{
+    margin-bottom:28px;
+  }
+  .branch-label{
+    font-size:12px;font-weight:500;color:var(--muted);margin-bottom:8px;
+  }
+  .branch-select{
+    width:100%;background:var(--surface2);border:1px solid var(--border);
+    border-radius:12px;padding:14px 16px;color:var(--text);font-size:15px;
+    cursor:pointer;transition:all .2s;
+  }
+  .branch-select:focus{
+    border-color:var(--accent);outline:none;
+  }
+
+  .field{margin-bottom:20px}
+  .field label{
+    display:block;font-size:13px;font-weight:500;color:var(--muted);margin-bottom:8px;
+  }
+  .input-wrap{
+    position:relative;
+  }
+  .input-wrap input{
+    width:100%;background:var(--surface2);border:1px solid var(--border);
+    border-radius:12px;padding:14px 16px 14px 44px;font-size:15px;color:var(--text);
+    outline:none;transition:border .2s;
+  }
+  .input-wrap input:focus{border-color:var(--accent)}
+  .input-icon{
+    position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:18px;
+  }
+
+  .btn{
+    width:100%;padding:15px;background:var(--accent);color:#fff;border:none;
+    border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;
+    margin-top:8px;transition:all .2s;
+  }
+  .btn:hover{background:var(--accent2)}
+
+  .footer{
+    text-align:center;margin-top:32px;font-size:13px;color:var(--muted);
+  }
+  .footer a{color:var(--accent);text-decoration:none}
+  .footer a:hover{text-decoration:underline}
+
+  .divider{
+    margin:24px 0;border:none;border-top:1px solid var(--border);
+  }
+</style>
 </head>
 <body>
-  <h1>Welcome to Nexus POS</h1>
+  <div class="glow"></div>
+  
+  <div class="login-card">
+    <!-- Logo -->
+    <div class="logo">
+      <div class="logo-icon">NX</div>
+      <div>
+        <div class="logo-text">Nexus POS</div>
+        <div style="font-size:12px;color:var(--muted)">Multi-Branch Platform</div>
+      </div>
+    </div>
 
-  <a href="/login/">Login</a>
+    <h1 class="welcome">Welcome back</h1>
+    <p class="subtitle">Select your branch and sign in to start your shift.</p>
+
+    <!-- Branch Selector -->
+    <div class="branch-selector">
+      <div class="branch-label">SELECT BRANCH</div>
+      <select class="branch-select" id="branch">
+        <option value="main">● Main Branch</option>
+        <!-- Add more branches dynamically later -->
+      </select>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Login Form -->
+    <div class="field">
+      <label>Email Address</label>
+      <div class="input-wrap">
+        <span class="input-icon">✉</span>
+        <input type="email" id="email" placeholder="you@company.co.ke" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Password</label>
+      <div class="input-wrap">
+        <span class="input-icon">🔑</span>
+        <input type="password" id="password" placeholder="••••••••" required>
+      </div>
+    </div>
+
+    <button class="btn" onclick="handleLogin()">Sign In to Shift</button>
+
+    <div class="footer">
+      All sessions are monitored and recorded for security.<br><br>
+      New company? <a href="../register/index.html">Create an account</a>
+    </div>
+  </div>
+
+  <script>
+    // Simple demo login
+    async function handleLogin() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      if (!email || !password) {
+        alert("Please enter email and password");
+        return;
+      }
+
+      // TODO: Connect to your Firebase login logic
+      console.log("Logging in with:", email);
+      
+      // For now, redirect to POS
+      setTimeout(() => {
+        window.location.href = "../pos/index.html";
+      }, 800);
+    }
+
+    // Allow pressing Enter to login
+    document.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleLogin();
+    });
+  </script>
 </body>
 </html>
