@@ -389,7 +389,9 @@ const token   = localStorage.getItem("nx_token");
 
 if (!session || !token) { window.location.href = "../login/index.html"; }
 
-const API      = "http://localhost:8000/api/v1";
+const API = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  ? "http://localhost:8000/api/v1"
+  : "https://nexus-backend.vercel.app/api/v1"; // ← replace with your actual Vercel backend URL
 const branchId = session.branch_id;
 const tenantId = session.tenant_id;
 const role     = session.role;
